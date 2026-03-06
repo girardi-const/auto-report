@@ -5,7 +5,4 @@ node_modules/
 dist/
 .next/
 .clerk/
-
-# Ignore all .md files except README.md
-*.md
-!README.md
+.plans/

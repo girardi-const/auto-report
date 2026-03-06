@@ -3,10 +3,33 @@ import config from '../config';
 import path from 'path';
 import fs from 'fs';
 
-// Ensure logs directory exists
-const logsDir = path.dirname(config.logging.filePath);
-if (!fs.existsSync(logsDir)) {
-    fs.mkdirSync(logsDir, { recursive: true });
+// Custom transports logic
+const transports: winston.transport[] = [];
+
+// Only add file transports if NOT in production (Vercel has read-only filesystem)
+if (config.env !== 'production') {
+    // Ensure logs directory exists
+    const logsDir = path.dirname(config.logging.filePath);
+    if (!fs.existsSync(logsDir)) {
+        fs.mkdirSync(logsDir, { recursive: true });
+    }
+
+    transports.push(
+        new winston.transports.File({
+            filename: path.join(logsDir, 'error.log'),
+            level: 'error',
+            maxsize: 5242880, // 5MB
+            maxFiles: 5,
+        }),
+        new winston.transports.File({
+            filename: config.logging.filePath,
+            maxsize: 5242880, // 5MB
+            maxFiles: 5,
+        })
+    );
+} else {
+    // In production, everything goes to the console so Vercel can capture it
+    transports.push(new winston.transports.Console());
 }
 
 const logger = winston.createLogger({
@@ -18,21 +41,7 @@ const logger = winston.createLogger({
         winston.format.json()
     ),
     defaultMeta: { service: 'auto-report-api' },
-    transports: [
-        // Error logs
-        new winston.transports.File({
-            filename: path.join(logsDir, 'error.log'),
-            level: 'error',
-            maxsize: 5242880, // 5MB
-            maxFiles: 5,
-        }),
-        // Combined logs
-        new winston.transports.File({
-            filename: config.logging.filePath,
-            maxsize: 5242880, // 5MB
-            maxFiles: 5,
-        }),
-    ],
+    transports: transports,
 });
 
 // Console logging for development

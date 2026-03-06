@@ -55,11 +55,18 @@ export default function Header() {
                     </li>
                     {
                         isAdmin && (
-                            <li>
-                                <Link href="/create-product" className="hover:text-primary transition-colors">
-                                    Produtos
-                                </Link>
-                            </li>
+                            <>
+                                <li>
+                                    <Link href="/create-product" className="hover:text-primary transition-colors">
+                                        Produtos
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="/users" className="hover:text-primary transition-colors">
+                                        Usuários
+                                    </Link>
+                                </li>
+                            </>
                         )
                     }
                     <li>

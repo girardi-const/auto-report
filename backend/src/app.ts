@@ -18,6 +18,16 @@ connectDatabase().catch(err => {
     console.error('Failed to connect to MongoDB:', err);
 });
 
+// CORS configuration - MUST be first to handle preflight requests
+app.use(
+    cors({
+        origin: config.cors.allowedOrigins,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+    })
+);
+
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
     limit: 100, // Máximo de 100 requisições por IP por janela
@@ -38,16 +48,6 @@ const limiter = rateLimit({
 });
 
 app.use(limiter);
-
-// CORS configuration - MUST be first to handle preflight requests
-app.use(
-    cors({
-        origin: config.cors.allowedOrigins,
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
-    })
-);
 
 // Security middleware
 app.use(helmet());
@@ -89,6 +89,7 @@ app.get('/health', (_req: Request, res: Response) => {
 import productRoutes from './routes/productRoutes';
 import reportRoutes from './routes/reportRoutes';
 import brandRoutes from './routes/brandRoutes';
+import userRoutes from './routes/userRoutes';
 
 // API routes
 const apiBase = `/api/${config.apiVersion}`;
@@ -96,6 +97,7 @@ const apiBase = `/api/${config.apiVersion}`;
 app.use(`${apiBase}/products`, productRoutes);
 app.use(`${apiBase}/reports`, reportRoutes);
 app.use(`${apiBase}/brands`, brandRoutes);
+app.use(`${apiBase}/users`, userRoutes);
 
 app.get(apiBase, (_req: Request, res: Response) => {
     res.json(

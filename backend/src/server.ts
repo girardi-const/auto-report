@@ -1,5 +1,3 @@
-// IMPORTANT: Sentry must be the very first import — before anything else.
-// This ensures it can instrument Node.js globals, async context, and libraries.
 
 import app from './app';
 import config from './config';

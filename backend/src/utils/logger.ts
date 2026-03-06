@@ -3,32 +3,39 @@ import config from '../config';
 import path from 'path';
 import fs from 'fs';
 
+// Detect serverless environment (Vercel, AWS Lambda, etc.)
+const isServerless = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
 // Custom transports logic
 const transports: winston.transport[] = [];
 
-// Only add file transports if NOT in production (Vercel has read-only filesystem)
-if (config.env !== 'production') {
-    // Ensure logs directory exists
-    const logsDir = path.dirname(config.logging.filePath);
-    if (!fs.existsSync(logsDir)) {
-        fs.mkdirSync(logsDir, { recursive: true });
-    }
+// Only add file transports if NOT serverless (Vercel has read-only filesystem)
+if (!isServerless && config.env !== 'production') {
+    try {
+        const logsDir = path.dirname(config.logging.filePath);
+        if (!fs.existsSync(logsDir)) {
+            fs.mkdirSync(logsDir, { recursive: true });
+        }
 
-    transports.push(
-        new winston.transports.File({
-            filename: path.join(logsDir, 'error.log'),
-            level: 'error',
-            maxsize: 5242880, // 5MB
-            maxFiles: 5,
-        }),
-        new winston.transports.File({
-            filename: config.logging.filePath,
-            maxsize: 5242880, // 5MB
-            maxFiles: 5,
-        })
-    );
+        transports.push(
+            new winston.transports.File({
+                filename: path.join(logsDir, 'error.log'),
+                level: 'error',
+                maxsize: 5242880, // 5MB
+                maxFiles: 5,
+            }),
+            new winston.transports.File({
+                filename: config.logging.filePath,
+                maxsize: 5242880, // 5MB
+                maxFiles: 5,
+            })
+        );
+    } catch {
+        // Fallback: If file system is not writable, just use console
+        transports.push(new winston.transports.Console());
+    }
 } else {
-    // In production, everything goes to the console so Vercel can capture it
+    // In production/serverless, everything goes to console (Vercel captures stdout)
     transports.push(new winston.transports.Console());
 }
 
@@ -44,8 +51,8 @@ const logger = winston.createLogger({
     transports: transports,
 });
 
-// Console logging for development
-if (config.env !== 'production') {
+// Console logging for development (pretty-print)
+if (!isServerless && config.env !== 'production') {
     logger.add(
         new winston.transports.Console({
             format: winston.format.combine(

@@ -12,6 +12,12 @@ import { createSuccessResponse } from './types/apiResponse';
 // Create Express app
 const app: Express = express();
 
+// Connect to database
+import { connectDatabase } from './config/database';
+connectDatabase().catch(err => {
+    console.error('Failed to connect to MongoDB:', err);
+});
+
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
     limit: 100, // Máximo de 100 requisições por IP por janela

@@ -3,6 +3,7 @@ import './instrument';
 import express, { Express, Request, Response } from 'express';
 import { rateLimit } from "express-rate-limit"
 import cors from 'cors';
+import compression from 'compression';
 import helmet from 'helmet';
 import config from './config';
 import { errorHandler } from './middleware/errorHandler';
@@ -28,9 +29,12 @@ app.use(
     })
 );
 
+// Response compression — reduces JSON payload size by 60-80%
+app.use(compression());
+
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    limit: 100, // Máximo de 100 requisições por IP por janela
+    limit: 500, // 500 req por IP por janela — seguro para 4+ usuários internos atrás do mesmo IP
     message: {
         error: 'Muitas requisições deste IP, tente novamente após 15 minutos.',
         retryAfter: '15 minutos',
@@ -84,6 +88,7 @@ app.get('/health', (_req: Request, res: Response) => {
         })
     );
 });
+
 
 // Import routes
 import productRoutes from './routes/productRoutes';

@@ -2,9 +2,26 @@ import { Request, Response, NextFunction } from 'express';
 import { Brand } from '../models/Brand';
 import { createSuccessResponse } from '../types/apiResponse';
 
+// ─── Server-side in-memory cache (shared across ALL users) ────────────────
+// The first request fetches from MongoDB; subsequent requests within the TTL
+// are served from memory. All users benefit from a single cached result.
+interface BrandCache {
+    data: InstanceType<typeof Brand>[];
+    expiresAt: number;
+}
+
+let brandsCache: BrandCache | null = null;
+const BRAND_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function invalidateBrandsCache() {
+    brandsCache = null;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * GET /api/v1/brands
  * List all brands, sorted alphabetically.
+ * Results are cached server-side for 5 minutes.
  */
 export const listBrands = async (
     _req: Request,
@@ -12,7 +29,17 @@ export const listBrands = async (
     next: NextFunction
 ): Promise<void> => {
     try {
+        const now = Date.now();
+
+        if (brandsCache && now < brandsCache.expiresAt) {
+            console.log('[CACHE] 🟢 brands — HIT (', brandsCache.data.length, 'items, expires in', Math.round((brandsCache.expiresAt - now) / 1000), 's)');
+            res.json(createSuccessResponse(brandsCache.data));
+            return;
+        }
+
+        console.log('[CACHE] 🔴 brands — MISS — querying MongoDB...');
         const brands = await Brand.find().sort({ brand_name: 1 });
+        brandsCache = { data: brands, expiresAt: now + BRAND_CACHE_TTL_MS };
         res.json(createSuccessResponse(brands));
     } catch (error) {
         next(error);
@@ -31,6 +58,7 @@ export const createBrand = async (
     try {
         const brand = new Brand(req.body);
         await brand.save();
+        invalidateBrandsCache(); // keep cache fresh
         res.status(201).json(createSuccessResponse(brand));
     } catch (error) {
         next(error);
@@ -48,6 +76,7 @@ export const deleteAllBrands = async (
 ): Promise<void> => {
     try {
         await Brand.deleteMany({});
+        invalidateBrandsCache(); // keep cache fresh
         res.json(createSuccessResponse({ message: 'All brands deleted' }));
     } catch (error) {
         next(error);
@@ -76,6 +105,7 @@ export const deleteManyBrands = async (
         }
 
         const result = await Brand.deleteMany({ brand_name: { $in: brand_names } });
+        invalidateBrandsCache(); // keep cache fresh
         res.json(createSuccessResponse({ deletedCount: result.deletedCount }));
     } catch (error) {
         next(error);

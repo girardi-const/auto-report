@@ -2,6 +2,22 @@ import { Product, IProduct } from '../models/Product';
 import { logger } from '../utils/logger';
 import cloudinary from '../config/cloudinary';
 
+// ─── Server-side in-memory cache (shared across ALL users) ────────────────
+// The first request fetches from MongoDB; subsequent requests within the TTL
+// are served from memory. All users benefit from a single cached result.
+interface ProductCache {
+    data: IProduct[];
+    expiresAt: number;
+}
+
+let productsCache: ProductCache | null = null;
+const PRODUCT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function invalidateProductsCache() {
+    productsCache = null;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Product Service
  * Handles business logic for products, including external API integration
@@ -38,6 +54,7 @@ export class ProductService {
             });
 
             await product.save();
+            invalidateProductsCache(); // new product added — bust the list cache
             logger.info(`Product ${uppercaseCode} fetched from external API and saved to database`);
             return product;
         }
@@ -73,18 +90,33 @@ export class ProductService {
     }
 
     /**
-     * List all products in the database
+     * List all products in the database.
+     * Results are cached server-side for 5 minutes (shared across ALL users).
      */
-    static async listProducts() {
-        return Product.find().sort({ updatedAt: -1 });
+    static async listProducts(): Promise<IProduct[]> {
+        const now = Date.now();
+
+        if (productsCache && now < productsCache.expiresAt) {
+            console.log('[CACHE] 🟢 products — HIT (', productsCache.data.length, 'items, expires in', Math.round((productsCache.expiresAt - now) / 1000), 's)');
+            return productsCache.data;
+        }
+
+        console.log('[CACHE] 🔴 products — MISS — querying MongoDB...');
+        const products = await Product.find().sort({ updatedAt: -1 });
+        const data = products as unknown as IProduct[];
+        productsCache = { data, expiresAt: now + PRODUCT_CACHE_TTL_MS };
+        return data;
     }
+
 
     /**
      * Create a product manually
      */
     static async createProduct(data: Partial<IProduct>) {
         const product = new Product(data);
-        return product.save();
+        const saved = await product.save();
+        invalidateProductsCache(); // new product added to catalog
+        return saved;
     }
 
     /**
@@ -121,6 +153,7 @@ export class ProductService {
         });
 
         await product.save();
+        invalidateProductsCache(); // new product added to catalog
         logger.info(`Product ${product.product_code} created with Cloudinary image`);
 
         return product;
@@ -144,6 +177,7 @@ export class ProductService {
         }
 
         logger.info(`Product ${product.product_code} updated`);
+        invalidateProductsCache(); // product fields changed
         return product;
     }
 
@@ -170,6 +204,7 @@ export class ProductService {
 
         // Delete product from MongoDB
         await Product.findByIdAndDelete(productId);
+        invalidateProductsCache(); // product removed from catalog
         logger.info(`Product ${product.product_code} deleted`);
     }
 }

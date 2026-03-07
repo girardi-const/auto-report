@@ -102,6 +102,7 @@ export interface ProductTableProps {
 export interface SavedReportProduct {
     product_name: string;
     product_id: string;
+    brand?: string;
     image_url?: string;
     price: number;
     margin: number;

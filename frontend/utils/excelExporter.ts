@@ -365,9 +365,8 @@ export async function generateExcel({
         // tl is 0-indexed. Add small inset (0.1) for visual padding.
         // Image sized to fit inside the cell with 4px breathing room.
         ws.addImage(imageId, {
-            tl: { col: IMG_COL - 1 + 0.1, row: imgRow - 1 + 0.1 },
-            ext: { width: 60, height: IMG_ROW_H - 8 },
-            editAs: 'oneCell',
+            tl: { col: IMG_COL - 1 + 0.15, row: imgRow - 1 + 0.1 } as any,
+            br: { col: IMG_COL - 1 + 0.85, row: imgRow - 1 + 0.9 } as any,
         });
     }
 

@@ -196,12 +196,12 @@ export default function ReportsPage() {
                 products: s.products.map((p, i) => ({
                     id: String(i),
                     code: p.product_id,
-                    brand: '',
+                    brand: p.brand || '',
                     name: p.product_name,
                     units: p.quantity,
                     priceBase: p.price,
-                    margin: 0,
-                    discount: 0,
+                    margin: p.margin || 0,
+                    discount: p.discount || 0,
                     image: p.image_url ?? '',
                 })),
             }));
@@ -251,12 +251,12 @@ export default function ReportsPage() {
                 products: s.products.map((p, i) => ({
                     id: String(i),
                     code: p.product_id,
-                    brand: '',
+                    brand: p.brand ?? '',
                     name: p.product_name,
                     units: p.quantity,
                     priceBase: p.price,
-                    margin: 0,
-                    discount: 0,
+                    margin: p.margin ?? 0,
+                    discount: p.discount ?? 0,
                     image: p.image_url ?? '',
                 })),
             }));

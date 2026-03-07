@@ -26,6 +26,7 @@ export interface IReport extends Document {
         products: {
             product_name: string;
             product_id: string;
+            brand: string;
             image_url: string;
             price: number;
             margin: number;
@@ -75,6 +76,7 @@ const ReportSchema = new Schema<IReport>(
                     {
                         _id: false,
                         product_name: { type: String, required: true, trim: true },
+                        brand: { type: String, default: '' },
                         image_url: { type: String, default: '' },
                         product_id: { type: String, required: true },
                         price: { type: Number, required: true },

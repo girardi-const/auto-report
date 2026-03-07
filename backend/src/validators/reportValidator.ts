@@ -4,6 +4,7 @@ import { z } from 'zod';
 const ReportProductSchema = z.object({
     product_name: z.string().min(1, 'Nome do produto é obrigatório'),
     product_id: z.string().min(1, 'ID do produto é obrigatório'),
+    brand: z.string().optional().default(''),
     image_url: z.string().optional().default(''),
     price: z.number().nonnegative('Preço não pode ser negativo'),
     margin: z.number().min(0).max(100),

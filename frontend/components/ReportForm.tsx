@@ -29,6 +29,7 @@ function buildSectionsPayload(sections: Section[], calculateSubtotal: (prods: Se
             return {
                 product_name: p.name,
                 product_id: p.code || p.id,
+                brand: p.brand || '',
                 image_url: p.image ?? '',
                 price: priceWithDiscount,
                 margin: p.margin ?? 0,

@@ -37,20 +37,25 @@ function savedToFrontendSections(report: SavedReport): Section[] {
         id: crypto.randomUUID(),
         name: s.section_name,
         discount: s.section_discount,
-        products: s.products.map((p) => ({
-            id: crypto.randomUUID(),
-            code: p.product_id,
-            brand: '',
-            name: p.product_name,
-            units: p.quantity,
-            // p.price is already the final unit price (margin + discount applied).
-            // Store it as priceBase and zero out margin/discount so renderers don't
-            // double-apply them.
-            priceBase: p.price,
-            margin: 0,
-            discount: 0,
-            image: p.image_url ?? '',
-        })),
+        products: s.products.map((p) => {
+            // Reconstruct the original priceBase so that we can keep the true margin and discount
+            const marginMult = 1 + (p.margin || 0) / 100;
+            const discountMult = 1 - (p.discount || 0) / 100;
+            const denom = marginMult * discountMult;
+            const priceBase = denom === 0 ? 0 : p.price / denom;
+
+            return {
+                id: crypto.randomUUID(),
+                code: p.product_id,
+                brand: p.brand || '',
+                name: p.product_name,
+                units: p.quantity,
+                priceBase,
+                margin: p.margin || 0,
+                discount: p.discount || 0,
+                image: p.image_url ?? '',
+            };
+        }),
     }));
 }
 
@@ -77,6 +82,7 @@ function buildPayload(
                 return {
                     product_name: p.name,
                     product_id: p.code || p.id,
+                    brand: p.brand || '',
                     image_url: p.image ?? '',
                     price,
                     margin: p.margin ?? 0,

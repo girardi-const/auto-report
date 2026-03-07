@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 export default function Header() {
     const { user, signOut, isAdmin } = useAuth();
+    const pathname = usePathname();
 
     const handleSignOut = async () => {
         try {
@@ -46,41 +48,43 @@ export default function Header() {
             </div>
 
             {/* Navigation Bar */}
-            <nav className="bg-[#403e3d] border-t border-white/5 py-3 px-4 md:px-8">
-                <ul className="flex flex-wrap justify-center gap-8 text-white text-sm font-medium">
-                    <li>
-                        <Link href="/" className="hover:text-primary transition-colors">
-                            Gerar Relatório
-                        </Link>
-                    </li>
-                    {
-                        isAdmin && (
-                            <>
-                                <li>
-                                    <Link href="/create-product" className="hover:text-primary transition-colors">
-                                        Produtos
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link href="/users" className="hover:text-primary transition-colors">
-                                        Usuários
-                                    </Link>
-                                </li>
-                            </>
-                        )
-                    }
-                    <li>
-                        <Link href="/products" className="hover:text-primary transition-colors">
-                            Catálogo
-                        </Link>
-                    </li>
-                    <li>
-                        <Link href="/reports" className="hover:text-primary transition-colors">
-                            Histórico
-                        </Link>
-                    </li>
-                </ul>
-            </nav>
+            {pathname !== "/" && !pathname.startsWith("/sign-in") && (
+                <nav className="bg-[#403e3d] border-t border-white/5 py-3 px-4 md:px-8">
+                    <ul className="flex flex-wrap justify-center gap-8 text-white text-sm font-medium">
+                        <li>
+                            <Link href="/gerar-relatorio" className="hover:text-primary transition-colors">
+                                Gerar Relatório
+                            </Link>
+                        </li>
+                        {
+                            isAdmin && (
+                                <>
+                                    <li>
+                                        <Link href="/create-product" className="hover:text-primary transition-colors">
+                                            Produtos
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link href="/users" className="hover:text-primary transition-colors">
+                                            Usuários
+                                        </Link>
+                                    </li>
+                                </>
+                            )
+                        }
+                        <li>
+                            <Link href="/products" className="hover:text-primary transition-colors">
+                                Catálogo
+                            </Link>
+                        </li>
+                        <li>
+                            <Link href="/reports" className="hover:text-primary transition-colors">
+                                Histórico
+                            </Link>
+                        </li>
+                    </ul>
+                </nav>
+            )}
         </header>
     );
 }

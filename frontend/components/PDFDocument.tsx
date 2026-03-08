@@ -26,7 +26,6 @@ export const ReportPDFDocument: React.FC<PDFDocumentProps> = ({
     cashDiscount,
     clientInfo
 }) => {
-    console.log('sections', sections);
     return (
         <Document>
             <Page size="A4" style={styles.page}>

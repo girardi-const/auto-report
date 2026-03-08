@@ -1,36 +1,122 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Auto Report – Frontend
+
+This repository contains the **frontend application** for the Auto Report system.  
+It is built with **Next.js** and provides the user interface for generating and visualizing automated reports.
+
+## Project Overview
+
+Auto Report is a modern, full-stack sales reporting platform designed to streamline the creation of professional product catalogs and sales quotes. This system allows users to organize products into custom sections, manage pricing with dynamic margins, and generate high-quality PDF and Excel exports.
+
+---
+
+## Tech Stack
+
+- **Next.js** - React framework for production
+- **React** - UI library
+- **TypeScript** (96.3%) - Type-safe development
+- **Tailwind CSS** (0.9%) - Utility-first CSS framework
+- **JavaScript** (2.8%) - Dynamic functionality
+- **REST API integration** - Backend communication
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js (v16 or higher)
+- npm or yarn
+
+### Installation
+
+First, install the dependencies:
+
+```bash
+npm install
+```
+
+### Running the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open your browser at:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The page will automatically reload when you edit the code.
 
-## Learn More
+### Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/            # Next.js pages and routing
+components/     # Reusable UI components
+lib/            # Utility functions and helpers
+styles/         # Global styles
+public/         # Static assets
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Environment Variables
 
-## Deploy on Vercel
+Create a file called `.env.local` in the root of the project.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Example:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5000
+```
+
+This should point to the Auto Report backend API.
+
+---
+
+## Available Scripts
+
+### Start development server
+
+```bash
+npm run dev
+```
+
+### Build the project
+
+```bash
+npm run build
+```
+
+### Start production server
+
+```bash
+npm run start
+```
+
+### Run linting
+
+```bash
+npm run lint
+```
+
+---
+
+## Deployment
+
+The easiest way to deploy this project is with **Vercel**.
+
+### Steps:
+
+1. Connect this repository to Vercel
+2. Configure environment variables
+3. Deploy
+
+For more information, visit: [Next.js Deployment Documentation](https://nextjs.org/docs/deployment)
+
+---
+
+## License
+
+MIT

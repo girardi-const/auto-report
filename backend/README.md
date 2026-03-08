@@ -79,11 +79,6 @@ backend/
 ### API Root
 - `GET /api/v1` - API information
 
-### Coming Soon
-- `/api/v1/reports` - Report CRUD operations
-- `/api/v1/products` - Product management
-- `/api/v1/auth` - Authentication
-
 ## 🛠️ Development
 
 ### Scripts

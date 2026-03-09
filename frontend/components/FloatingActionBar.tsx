@@ -35,8 +35,8 @@ export function FloatingActionBar({
                 </div>
                 <div className="w-[1px] h-8 bg-white/10"></div>
                 <div className="flex flex-col leading-none">
-                    <span className="text-[9px] uppercase text-primary font-black tracking-[0.4em] mb-1">Total à Vista</span>
-                    <span className="text-3xl font-black italic tracking-tighter text-primary">
+                    <span className="text-[9px] uppercase text-white font-black tracking-[0.4em] mb-1">Total à Vista</span>
+                    <span className="text-3xl font-black italic tracking-tighter text-white">
                         {formatCurrency(totalValue)}
                     </span>
                 </div>

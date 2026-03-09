@@ -8,6 +8,7 @@ const API = process.env.NEXT_PUBLIC_API_URL;
 export interface FirebaseUser {
     uid: string;
     email: string | null;
+    name: string;
     disabled: boolean;
     admin: boolean;
     createdAt: string | null;
@@ -19,7 +20,7 @@ interface UseUsersReturn {
     loading: boolean;
     error: string | null;
     fetchUsers: () => Promise<void>;
-    createUser: (email: string, password: string) => Promise<boolean>;
+    createUser: (email: string, password: string, name: string) => Promise<boolean>;
     deleteUser: (uid: string) => Promise<boolean>;
     toggleAdmin: (uid: string, admin: boolean) => Promise<boolean>;
 }
@@ -56,12 +57,12 @@ export function useUsers(): UseUsersReturn {
     }, [getIdToken]);
 
     const createUser = useCallback(
-        async (email: string, password: string): Promise<boolean> => {
+        async (email: string, password: string, name: string): Promise<boolean> => {
             try {
                 const res = await fetch(`${API}/users`, {
                     method: 'POST',
                     headers: await authHeaders(),
-                    body: JSON.stringify({ email, password }),
+                    body: JSON.stringify({ email, password, name }),
                 });
                 if (!res.ok) {
                     const data = await res.json();

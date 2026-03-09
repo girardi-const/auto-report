@@ -2,12 +2,17 @@
 
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut } from "lucide-react";
+import { useMongoUser } from "@/hooks/useMongoUser";
+import { LogOut, User as UserIcon, ChevronDown } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
 
 export default function Header() {
     const { user, signOut, isAdmin } = useAuth();
+    const { mongoUser } = useMongoUser();
     const pathname = usePathname();
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     const handleSignOut = async () => {
         try {
@@ -16,6 +21,17 @@ export default function Header() {
             console.error('Error signing out:', error);
         }
     };
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     return (
         <header className="w-full font-sans">
@@ -30,19 +46,61 @@ export default function Header() {
                     />
                 </Link>
 
-                {/* User Info & Sign Out */}
+                {/* User Dropdown */}
                 {user && (
-                    <div className="flex items-center gap-4">
-                        <span className="text-white/80 text-sm">
-                            {user.email}
-                        </span>
+                    <div className="relative" ref={dropdownRef}>
                         <button
-                            onClick={handleSignOut}
-                            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-[#c91e25] text-white rounded-lg transition-colors text-sm font-medium"
+                            onClick={() => setDropdownOpen((prev) => !prev)}
+                            className="flex items-center gap-2 bg-white/5 hover:bg-white/10 rounded-full pl-3 pr-3 py-1.5 border border-white/10 transition-colors"
                         >
-                            <LogOut size={16} />
-                            Sair
+                            <div className="bg-primary/20 p-1.5 rounded-full text-primary">
+                                <UserIcon size={16} />
+                            </div>
+                            <div className="flex flex-col text-left">
+                                <span className="text-white text-sm font-semibold leading-tight">
+                                    {mongoUser?.name || 'Carregando...'}
+                                </span>
+                                <span className="text-white/50 text-[10px] uppercase tracking-wider font-bold">
+                                    {isAdmin ? 'Administrador' : 'Usuário'}
+                                </span>
+                            </div>
+                            <ChevronDown
+                                size={14}
+                                className={`text-white/40 ml-1 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
+                            />
                         </button>
+
+                        {/* Dropdown */}
+                        {dropdownOpen && (
+                            <div className="absolute right-0 mt-2 w-56 bg-[#2e2c2b] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                                {/* User Info Row */}
+                                <div className="px-4 py-3 border-b border-white/10 flex items-center gap-3">
+                                    <div className="bg-primary/20 p-2 rounded-full text-primary shrink-0">
+                                        <UserIcon size={18} />
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="text-white text-sm font-semibold truncate">
+                                            {mongoUser?.name || 'Carregando...'}
+                                        </span>
+                                        <span className="text-white/40 text-xs truncate">
+                                            {user.email}
+                                        </span>
+                                        <span className="text-primary text-[10px] uppercase tracking-widest font-bold mt-0.5">
+                                            {isAdmin ? 'Administrador' : 'Usuário'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Sign Out */}
+                                <button
+                                    onClick={handleSignOut}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors font-medium"
+                                >
+                                    <LogOut size={15} className="text-primary" />
+                                    Sair do sistema
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -56,27 +114,25 @@ export default function Header() {
                                 Gerar Relatório
                             </Link>
                         </li>
-                        {
-                            isAdmin && (
-                                <>
-                                    <li>
-                                        <Link href="/criar-produto" className="hover:text-primary transition-colors">
-                                            Produtos
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/usuarios" className="hover:text-primary transition-colors">
-                                            Usuários
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/admin/importar" className="hover:text-primary transition-colors">
-                                            Importar
-                                        </Link>
-                                    </li>
-                                </>
-                            )
-                        }
+                        {isAdmin && (
+                            <>
+                                <li>
+                                    <Link href="/criar-produto" className="hover:text-primary transition-colors">
+                                        Produtos
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="/usuarios" className="hover:text-primary transition-colors">
+                                        Usuários
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="/admin/importar" className="hover:text-primary transition-colors">
+                                        Importar
+                                    </Link>
+                                </li>
+                            </>
+                        )}
                         <li>
                             <Link href="/catalogo" className="hover:text-primary transition-colors">
                                 Catálogo

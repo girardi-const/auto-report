@@ -467,7 +467,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                                                     Desconto: {section.section_discount}%
                                                 </span>
                                             )}
-                                            <span className="text-primary font-black text-sm">
+                                            <span className="text-white font-black text-sm">
                                                 {formatCurrency(sectionTotal)}
                                             </span>
                                         </div>
@@ -508,7 +508,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                         {/* Total summary */}
                         <div className="bg-secondary rounded-xl px-8 py-6 flex justify-between items-center text-white">
                             <span className="font-black text-sm uppercase tracking-[0.2em] text-white/60">Total do Orçamento</span>
-                            <span className="font-black text-2xl text-primary">
+                            <span className="font-black text-2xl text-white">
                                 {formatCurrency(report.sections.reduce((acc, s) => {
                                     const raw = s.products.reduce((a, p) => a + p.total, 0);
                                     return acc + raw * (1 - (s.section_discount || 0) / 100);

@@ -44,6 +44,9 @@ export const verifyToken = async (
     }
 };
 
+/** Alias for verifyToken for route readability */
+export const requireAuth = verifyToken;
+
 /**
  * requireAdmin
  * Must be used AFTER verifyToken. Checks that the decoded token has the

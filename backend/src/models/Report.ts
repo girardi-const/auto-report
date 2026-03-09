@@ -36,6 +36,7 @@ export interface IReport extends Document {
         }[];
     }[];
     creator_id: string;
+    creator_name: string;
     timestamp: Date;
 }
 
@@ -91,6 +92,10 @@ const ReportSchema = new Schema<IReport>(
         creator_id: {
             type: String,
             required: true,
+        },
+        creator_name: {
+            type: String,
+            default: 'Usuário desconhecido',
         },
         timestamp: {
             type: Date,

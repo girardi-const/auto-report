@@ -403,6 +403,7 @@ export default function ReportsPage() {
                             <thead className="bg-gray-50 text-gray-400 font-black uppercase text-[9px] tracking-[0.2em] border-b border-gray-100">
                                 <tr>
                                     <th className="px-6 py-4">Título</th>
+                                    <th className="px-6 py-4">Usuário</th>
                                     <th className="px-6 py-4">Data</th>
                                     <th className="px-6 py-4">Seções</th>
                                     <th className="px-6 py-4 text-right">Total</th>
@@ -439,13 +440,20 @@ export default function ReportsPage() {
                                         {/* Title — clickable to detail */}
                                         <td className="px-6 py-4 max-w-xs">
                                             <Link
-                                                href={`/reports/${r._id}`}
+                                                href={`/historico/${r._id}`}
                                                 className="font-semibold text-gray-700 hover:text-primary transition-colors truncate block"
                                             >
                                                 {r.title}
                                             </Link>
-                                            <span className="text-[10px] text-gray-300 font-black uppercase tracking-widest">
+                                            <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest">
                                                 {r.sections.reduce((a, s) => a + s.products.length, 0)} produto{r.sections.reduce((a, s) => a + s.products.length, 0) !== 1 ? 's' : ''}
+                                            </span>
+                                        </td>
+
+                                        {/* User */}
+                                        <td className="px-6 py-4">
+                                            <span className="inline-block bg-secondary/5 text-secondary text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">
+                                                {r.creator_name || 'Usuário Desconhecido'}
                                             </span>
                                         </td>
 

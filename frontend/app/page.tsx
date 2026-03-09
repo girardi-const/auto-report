@@ -1,22 +1,25 @@
 'use client';
 
 import { useAuth } from "@/contexts/AuthContext";
+import { useMongoUser } from "@/hooks/useMongoUser";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
 import { FileText, Database, History, UserPlus, PackagePlus, UploadCloud } from "lucide-react";
+import NameModal from "@/components/NameModal";
 
 export default function Home() {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading: authLoading, isAdmin } = useAuth();
+  const { mongoUser, loading: mongoLoading, needsName, createMe } = useMongoUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       router.push('/sign-in');
     }
-  }, [user, loading, router]);
+  }, [user, authLoading, router]);
 
-  if (loading) {
+  if (authLoading || (user && mongoLoading)) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center bg-white">
         <div className="text-gray-500 font-medium italic">Carregando portal...</div>
@@ -84,6 +87,16 @@ export default function Home() {
 
   return (
     <div className="flex-1 bg-gradient-to-b from-white to-gray-50 w-full flex flex-col pt-16 px-4 md:px-8 text-secondary relative overflow-hidden flex-grow -mt-4">
+      {/* Name Request Modal */}
+      <NameModal
+        open={needsName}
+        loading={mongoLoading}
+        onSubmit={async (name) => {
+          const success = await createMe(name);
+          return success;
+        }}
+      />
+
       {/* Subtle background grid pattern */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMWgyMCIgc3Ryb2tlPSIjMDAwMDAwMDMiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMSAxVjIwIiBzdHJva2U9IiMwMDAwMDAwMyIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==')] opacity-40 z-0"></div>
 

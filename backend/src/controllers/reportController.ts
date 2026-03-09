@@ -107,9 +107,17 @@ export const createReport = asyncHandler(
         // Validate request body — throws ZodError caught by errorHandler if invalid
         const validatedBody = CreateReportSchema.parse(req.body);
 
+        const uid = req.firebaseUser!.uid;
+
+        // Fetch user from DB to embed their name
+        const { User } = await import('../models/User');
+        const user = await User.findOne({ uid });
+        const creator_name = user?.name || 'Usuário desconhecido';
+
         const report = new Report({
             ...validatedBody,
-            creator_id: req.firebaseUser!.uid, // server-assigned; never from body
+            creator_id: uid, // server-assigned; never from body
+            creator_name,
         });
 
         await report.save();

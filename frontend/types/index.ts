@@ -120,6 +120,7 @@ export interface SavedReportSection {
 export interface SavedReport {
     _id: string;
     title: string;
+    creator_name: string;
     especificador?: string;
     consultor?: string;
     cash_discount?: number;

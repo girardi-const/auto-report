@@ -1,16 +1,24 @@
 import { Router } from 'express';
-import { requireAdmin } from '../middleware/authMiddleware';
+import { requireAdmin, requireAuth } from '../middleware/authMiddleware';
 import {
     listUsers,
     createUser,
     deleteUser,
     toggleAdmin,
+    getMe,
+    createMe,
 } from '../controllers/userController';
 
 const router = Router();
 
+/** GET /api/v1/users/me — gets current user's Mongo document */
+router.get('/me', requireAuth, getMe);
+
+/** POST /api/v1/users/me — creates current user's Mongo document using their name */
+router.post('/me', requireAuth, createMe);
+
 /**
- * All user-management routes are admin-only.
+ * All following user-management routes are admin-only.
  */
 
 /** GET /api/v1/users — list all Firebase Auth users */

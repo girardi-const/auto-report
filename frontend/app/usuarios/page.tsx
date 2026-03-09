@@ -16,6 +16,7 @@ export default function UsersPage() {
     // Form state
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [name, setName] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
     // Confirmation state
@@ -39,11 +40,12 @@ export default function UsersPage() {
     const handleCreate = async (e: FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
-        const ok = await createUser(email, password);
+        const ok = await createUser(email, password, name);
         if (ok) {
             toast.success('Usuário criado com sucesso!');
             setEmail('');
             setPassword('');
+            setName('');
         } else {
             toast.error(error || 'Erro ao criar usuário');
         }
@@ -101,6 +103,15 @@ export default function UsersPage() {
                 </h2>
                 <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-3">
                     <input
+                        type="text"
+                        placeholder="Nome"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                        disabled={submitting}
+                        className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all duration-200 placeholder:text-gray-300 text-sm"
+                    />
+                    <input
                         type="email"
                         placeholder="Email"
                         value={email}
@@ -157,10 +168,13 @@ export default function UsersPage() {
                                 className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-6 py-4 hover:bg-gray-50/50 transition-colors"
                             >
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-800 truncate">
+                                    <p className="text-md font-bold text-gray-800 truncate">
+                                        {u.name}
+                                    </p>
+                                    <p className="text-sm text-secondary truncate mt-0.5">
                                         {u.email}
                                     </p>
-                                    <p className="text-xs text-gray-400 mt-0.5">
+                                    <p className="text-[10px] uppercase font-black tracking-widest text-gray-400 mt-1">
                                         Criado em{' '}
                                         {u.createdAt
                                             ? new Date(u.createdAt).toLocaleDateString('pt-BR')

@@ -60,12 +60,12 @@ export default function Header() {
                             isAdmin && (
                                 <>
                                     <li>
-                                        <Link href="/create-product" className="hover:text-primary transition-colors">
+                                        <Link href="/criar-produto" className="hover:text-primary transition-colors">
                                             Produtos
                                         </Link>
                                     </li>
                                     <li>
-                                        <Link href="/users" className="hover:text-primary transition-colors">
+                                        <Link href="/usuarios" className="hover:text-primary transition-colors">
                                             Usuários
                                         </Link>
                                     </li>
@@ -78,12 +78,12 @@ export default function Header() {
                             )
                         }
                         <li>
-                            <Link href="/products" className="hover:text-primary transition-colors">
+                            <Link href="/catalogo" className="hover:text-primary transition-colors">
                                 Catálogo
                             </Link>
                         </li>
                         <li>
-                            <Link href="/reports" className="hover:text-primary transition-colors">
+                            <Link href="/historico" className="hover:text-primary transition-colors">
                                 Histórico
                             </Link>
                         </li>

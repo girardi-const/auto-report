@@ -38,7 +38,7 @@ export default function Home() {
       delay: "0s"
     },
     {
-      href: "/products",
+      href: "/catalogo",
       title: "Catálogo",
       description: "Navegue pelo catálogo completo de produtos e adicione-os ao seu relatório.",
       icon: Database,
@@ -46,7 +46,7 @@ export default function Home() {
       delay: "-1s"
     },
     {
-      href: "/reports",
+      href: "/historico",
       title: "Histórico",
       description: "Acesse e gerencie seus relatórios salvos anteriormente.",
       icon: History,
@@ -57,7 +57,7 @@ export default function Home() {
 
   if (isAdmin) {
     cards.push({
-      href: "/create-product",
+      href: "/criar-produto",
       title: "Produtos",
       description: "Cadastre novos produtos no sistema como administrador.",
       icon: PackagePlus,
@@ -65,7 +65,7 @@ export default function Home() {
       delay: "-3s"
     });
     cards.push({
-      href: "/users",
+      href: "/usuarios",
       title: "Usuários",
       description: "Gerencie o acesso e permissões de usuários do sistema.",
       icon: UserPlus,

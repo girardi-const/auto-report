@@ -8,6 +8,9 @@ export interface ReportQueryOptions {
     page?: number;
     limit?: number;
     search?: string;
+    creator_name?: string;
+    dateFrom?: string;
+    dateTo?: string;
     sortBy?: 'timestamp' | 'title';
     sortOrder?: 'asc' | 'desc';
 }
@@ -28,7 +31,7 @@ interface UseReportsReturn {
 }
 
 export function useReports(options: ReportQueryOptions = {}): UseReportsReturn {
-    const { page = 1, limit = 20, search, sortBy = 'timestamp', sortOrder = 'desc' } = options;
+    const { page = 1, limit = 100, search, creator_name, dateFrom, dateTo, sortBy = 'timestamp', sortOrder = 'desc' } = options;
     const { user, isAdmin, getIdToken } = useAuth();
     const [reports, setReports] = useState<SavedReport[]>([]);
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
@@ -50,6 +53,9 @@ export function useReports(options: ReportQueryOptions = {}): UseReportsReturn {
                 sortBy,
                 sortOrder,
                 ...(search ? { search } : {}),
+                ...(creator_name ? { creator_name } : {}),
+                ...(dateFrom ? { dateFrom } : {}),
+                ...(dateTo ? { dateTo } : {}),
             });
 
             const res = await fetch(`${API}/reports/${user.uid}?${params}`, {
@@ -75,7 +81,7 @@ export function useReports(options: ReportQueryOptions = {}): UseReportsReturn {
         } finally {
             setLoading(false);
         }
-    }, [user, isAdmin, getIdToken, page, limit, search, sortBy, sortOrder]);
+    }, [user, isAdmin, getIdToken, page, limit, search, creator_name, dateFrom, dateTo, sortBy, sortOrder]);
 
     useEffect(() => {
         fetchReports();

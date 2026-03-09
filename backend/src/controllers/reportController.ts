@@ -17,12 +17,34 @@ export const getReportsByUser = asyncHandler(
         const isAdmin = !!req.firebaseUser!.admin;
 
         // Parse & coerce query params — ZodError → 400 via errorHandler
-        const { page, limit, search, sortBy, sortOrder } = ReportQuerySchema.parse(req.query);
+        const { page, limit, search, creator_name, dateFrom, dateTo, sortBy, sortOrder } = ReportQuerySchema.parse(req.query);
         const skip = (page - 1) * limit;
         const sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 } as Record<string, 1 | -1>;
 
-        // Optional full-text search on title (case-insensitive)
-        const baseFilter = search ? { title: { $regex: search, $options: 'i' } } : {};
+        // Build base dynamic filters
+        const baseFilter: Record<string, any> = {};
+
+        if (search) {
+            baseFilter.$or = [
+                { title: { $regex: search, $options: 'i' } },
+                { 'client_info.name': { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        if (creator_name) {
+            baseFilter.creator_name = creator_name;
+        }
+
+        if (dateFrom || dateTo) {
+            baseFilter.timestamp = {};
+            if (dateFrom) {
+                baseFilter.timestamp.$gte = new Date(dateFrom);
+            }
+            if (dateTo) {
+                // Ensure the "To" date incorporates the very end of that day locally
+                baseFilter.timestamp.$lte = new Date(`${dateTo}T23:59:59.999Z`);
+            }
+        }
 
         if (isAdmin) {
             // Admins see every report in the database

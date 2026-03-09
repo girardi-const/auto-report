@@ -11,6 +11,7 @@ import { generateExcel } from '../../utils/excelExporter';
 import { pdf as generatePdf } from '@react-pdf/renderer';
 import { ReportPDFDocument } from '../../components/PDFDocument';
 import { formatCurrency } from '../../utils/formatters';
+import { useUsers } from '../../hooks/useUsers';
 import {
     Search,
     RefreshCcw,
@@ -26,8 +27,6 @@ import {
     ChevronRight,
     Calendar,
 } from 'lucide-react';
-
-const PAGE_SIZE = 20;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -125,27 +124,32 @@ function SkeletonRow() {
 export default function ReportsPage() {
     const { user, loading: authLoading, isAdmin } = useAuth();
     const router = useRouter();
-    const { reports, loading, error, refetch } = useReports();
+    const { users, fetchUsers } = useUsers();
+
+    // Filters State
+    const [rawSearch, setRawSearch] = useState('');
+    const [search, setSearch] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [creatorFilter, setCreatorFilter] = useState('');
+    const [page, setPage] = useState(1);
+    const limit = 20;
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Fetch dynamic reports from API
+    const { reports, loading, error, refetch, pagination } = useReports({
+        page,
+        limit,
+        search,
+        creator_name: creatorFilter,
+        dateFrom,
+        dateTo
+    });
 
     // Auth guard
     useEffect(() => {
         if (!authLoading && !user) router.push('/sign-in');
     }, [user, authLoading, router]);
-
-    // Modal state
-    const [deleteTarget, setDeleteTarget] = useState<SavedReport | null>(null);
-
-    // Download states
-    const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
-    const [downloadingExcel, setDownloadingExcel] = useState<string | null>(null);
-
-    // Filters
-    const [rawSearch, setRawSearch] = useState('');
-    const [search, setSearch] = useState('');
-    const [dateFrom, setDateFrom] = useState('');
-    const [dateTo, setDateTo] = useState('');
-    const [page, setPage] = useState(1);
-    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
@@ -158,29 +162,25 @@ export default function ReportsPage() {
     }, []);
 
     const clearFilters = useCallback(() => {
-        setRawSearch(''); setSearch(''); setDateFrom(''); setDateTo(''); setPage(1);
+        setRawSearch(''); setSearch(''); setDateFrom(''); setDateTo(''); setCreatorFilter(''); setPage(1);
     }, []);
 
-    const hasFilters = rawSearch !== '' || dateFrom !== '' || dateTo !== '';
+    const hasFilters = rawSearch !== '' || dateFrom !== '' || dateTo !== '' || creatorFilter !== '';
 
-    // Filtered reports
-    const filtered = useMemo<SavedReport[]>(() => {
-        const q = search.toUpperCase();
-        return reports.filter((r) => {
-            const matchSearch = q ? r.title.toUpperCase().includes(q) : true;
-            const ts = new Date(r.timestamp);
-            const matchFrom = dateFrom ? ts >= new Date(dateFrom) : true;
-            const matchTo = dateTo ? ts <= new Date(dateTo + 'T23:59:59') : true;
-            return matchSearch && matchFrom && matchTo;
-        });
-    }, [reports, search, dateFrom, dateTo]);
+    // Admin Users Loader for filters
+    useEffect(() => {
+        if (isAdmin) fetchUsers();
+    }, [isAdmin, fetchUsers]);
 
-    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    // Modal state
+    const [deleteTarget, setDeleteTarget] = useState<SavedReport | null>(null);
+
+    // Download states
+    const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
+    const [downloadingExcel, setDownloadingExcel] = useState<string | null>(null);
+
+    const totalPages = pagination?.totalPages || 1;
     const safePage = Math.min(page, totalPages);
-    const pageItems = useMemo(
-        () => filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
-        [filtered, safePage]
-    );
 
     // ── PDF Download ────────────────────────────────────────────────────────
     const handleDownloadPDF = async (report: SavedReport) => {
@@ -309,7 +309,7 @@ export default function ReportsPage() {
                         <p className="text-gray-800/40 text-xs font-medium mt-0.5">
                             {loading
                                 ? 'Carregando…'
-                                : `${filtered.length} de ${reports.length} relatório${reports.length !== 1 ? 's' : ''}`}
+                                : `${reports.length} de ${pagination?.total || reports.length} relatório${(pagination?.total || reports.length) !== 1 ? 's' : ''}`}
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -341,10 +341,26 @@ export default function ReportsPage() {
                             type="text"
                             value={rawSearch}
                             onChange={handleSearchChange}
-                            placeholder="Buscar por título…"
+                            placeholder="Buscar por título ou cliente…"
                             className="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg border-2 border-gray-100 focus:border-primary outline-none transition-all font-medium text-gray-700 placeholder:text-gray-300"
                         />
                     </div>
+
+                    {/* Creator Filter (Admin) */}
+                    {isAdmin && users.length > 0 && (
+                        <div className="relative min-w-[200px]">
+                            <select
+                                value={creatorFilter}
+                                onChange={(e) => { setCreatorFilter(e.target.value); setPage(1); }}
+                                className="w-full px-4 py-2.5 text-sm rounded-lg border-2 border-gray-100 focus:border-primary outline-none transition-all font-medium text-gray-700 bg-white appearance-none"
+                            >
+                                <option value="">Todos os usuários</option>
+                                {users.map(u => (
+                                    <option key={u.uid} value={u.name || (u.email ?? u.uid)}>{u.name || u.email}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
 
                     {/* Date From */}
                     <div className="relative">
@@ -414,7 +430,7 @@ export default function ReportsPage() {
                             <tbody className="divide-y divide-gray-50">
                                 {loading && Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)}
 
-                                {!loading && filtered.length === 0 && (
+                                {!loading && reports.length === 0 && (
                                     <tr>
                                         <td colSpan={colCount} className="px-6 py-20 text-center">
                                             <div className="flex flex-col items-center gap-3 text-gray-300">
@@ -435,7 +451,7 @@ export default function ReportsPage() {
                                     </tr>
                                 )}
 
-                                {!loading && pageItems.map((r) => (
+                                {!loading && reports.map((r) => (
                                     <tr key={r._id} className="group hover:bg-gray-50/60 transition-colors">
                                         {/* Title — clickable to detail */}
                                         <td className="px-6 py-4 max-w-xs">
@@ -539,7 +555,7 @@ export default function ReportsPage() {
                     </div>
 
                     {/* Pagination */}
-                    {!loading && filtered.length > PAGE_SIZE && (
+                    {!loading && (pagination?.total || 0) > limit && (
                         <div className="border-t border-gray-100 px-6 py-4 flex items-center justify-between gap-4">
                             <span className="text-xs text-gray-400 font-medium">
                                 Página <span className="font-black text-secondary">{safePage}</span> de{' '}

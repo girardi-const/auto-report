@@ -62,6 +62,9 @@ export const PaginationSchema = z.object({
 
 export const ReportQuerySchema = PaginationSchema.extend({
     search: z.string().optional(),
+    creator_name: z.string().optional(),
+    dateFrom: z.string().optional(),
+    dateTo: z.string().optional(),
     sortBy: z.enum(['timestamp', 'title']).default('timestamp'),
     sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });

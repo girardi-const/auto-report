@@ -93,15 +93,11 @@ export default function CreateProductPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                        {[
-                            { icon: FileSpreadsheet, label: "Excel" },
-                            { icon: FileText, label: "PDF" },
-                            { icon: FileJson, label: "CSV" }
-                        ].map(({ icon: Icon, label }) => (
-                            <button key={label} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-primary hover:text-primary transition-all text-[10px] font-black uppercase tracking-widest text-gray-400 shadow-sm">
-                                <Icon size={16} /> {label}
-                            </button>
-                        ))}
+
+                        <Link href="/admin/importar" className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-primary hover:text-primary transition-all text-[10px] font-black uppercase tracking-widest text-gray-400 shadow-sm">
+                            <FileSpreadsheet size={16} /> Importar Produtos
+                        </Link>
+
                     </div>
                 </div>
 

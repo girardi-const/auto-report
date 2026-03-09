@@ -69,6 +69,11 @@ export default function Header() {
                                             Usuários
                                         </Link>
                                     </li>
+                                    <li>
+                                        <Link href="/admin/importar" className="hover:text-primary transition-colors">
+                                            Importar
+                                        </Link>
+                                    </li>
                                 </>
                             )
                         }

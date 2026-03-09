@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
-import { FileText, Database, History, UserPlus, PackagePlus } from "lucide-react";
+import { FileText, Database, History, UserPlus, PackagePlus, UploadCloud } from "lucide-react";
 
 export default function Home() {
   const { user, loading, isAdmin } = useAuth();
@@ -71,6 +71,14 @@ export default function Home() {
       icon: UserPlus,
       glowColor: "#f59e0b", // amber-500
       delay: "-4s"
+    });
+    cards.push({
+      href: "/admin/importar",
+      title: "Importador",
+      description: "Faça upload de planilhas para cadastrar múltiplos produtos de uma vez.",
+      icon: UploadCloud,
+      glowColor: "#ef4444", // red-500
+      delay: "-5s"
     });
   }
 

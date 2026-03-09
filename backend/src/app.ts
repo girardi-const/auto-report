@@ -95,6 +95,7 @@ import productRoutes from './routes/productRoutes';
 import reportRoutes from './routes/reportRoutes';
 import brandRoutes from './routes/brandRoutes';
 import userRoutes from './routes/userRoutes';
+import importRoutes from './routes/importRoutes';
 
 // API routes
 const apiBase = `/api/${config.apiVersion}`;
@@ -103,6 +104,7 @@ app.use(`${apiBase}/products`, productRoutes);
 app.use(`${apiBase}/reports`, reportRoutes);
 app.use(`${apiBase}/brands`, brandRoutes);
 app.use(`${apiBase}/users`, userRoutes);
+app.use(`${apiBase}/admin/imports`, importRoutes);
 
 app.get(apiBase, (_req: Request, res: Response) => {
     res.json(
@@ -114,6 +116,7 @@ app.get(apiBase, (_req: Request, res: Response) => {
                 reports: `${apiBase}/reports`,
                 products: `${apiBase}/products`,
                 brands: `${apiBase}/brands`,
+                adminImports: `${apiBase}/admin/imports`,
             },
         })
     );

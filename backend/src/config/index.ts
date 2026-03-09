@@ -56,8 +56,12 @@ const config: Config = {
     port: parseInt(process.env.PORT || '3001', 10),
     apiVersion: process.env.API_VERSION || 'v1',
     mongodb: {
-        uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/auto-report',
-        dbName: process.env.MONGODB_DB_NAME || 'auto-report',
+        uri: process.env.NODE_ENV === 'test'
+            ? process.env.MONGO_TEST_URI || 'mongodb://localhost:27017/auto-report-test'
+            : process.env.MONGODB_URI || 'mongodb://localhost:27017/auto-report',
+        dbName: process.env.NODE_ENV === 'test'
+            ? process.env.MONGO_DB_TEST_NAME || 'Test'
+            : process.env.MONGODB_DB_NAME || 'auto-report',
     },
     externalApis: {
         productApi: {

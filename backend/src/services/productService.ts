@@ -2,21 +2,7 @@ import { Product, IProduct } from '../models/Product';
 import { logger } from '../utils/logger';
 import cloudinary from '../config/cloudinary';
 
-// ─── Server-side in-memory cache (shared across ALL users) ────────────────
-// The first request fetches from MongoDB; subsequent requests within the TTL
-// are served from memory. All users benefit from a single cached result.
-interface ProductCache {
-    data: IProduct[];
-    expiresAt: number;
-}
-
-let productsCache: ProductCache | null = null;
-const PRODUCT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-function invalidateProductsCache() {
-    productsCache = null;
-}
-// ─────────────────────────────────────────────────────────────────────────────
+// Removed naive server-side cache for scalability
 
 /**
  * Product Service
@@ -54,7 +40,6 @@ export class ProductService {
             });
 
             await product.save();
-            invalidateProductsCache(); // new product added — bust the list cache
             logger.info(`Product ${uppercaseCode} fetched from external API and saved to database`);
             return product;
         }
@@ -90,22 +75,39 @@ export class ProductService {
     }
 
     /**
-     * List all products in the database.
-     * Results are cached server-side for 5 minutes (shared across ALL users).
+     * List products from the database with pagination and filters.
      */
-    static async listProducts(): Promise<IProduct[]> {
-        const now = Date.now();
+    static async listProducts(
+        query: { search?: string; brand?: string; page: number; limit: number; sortBy: string; sortOrder: 'asc' | 'desc' }
+    ): Promise<{ data: IProduct[]; total: number; page: number; totalPages: number }> {
+        const { search, brand, page, limit, sortBy, sortOrder } = query;
+        const skip = (page - 1) * limit;
+        const sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 } as Record<string, 1 | -1>;
 
-        if (productsCache && now < productsCache.expiresAt) {
-            console.log('[CACHE] 🟢 products — HIT (', productsCache.data.length, 'items, expires in', Math.round((productsCache.expiresAt - now) / 1000), 's)');
-            return productsCache.data;
+        const filter: Record<string, any> = {};
+
+        if (search) {
+            filter.$or = [
+                { product_code: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } }
+            ];
         }
 
-        console.log('[CACHE] 🔴 products — MISS — querying MongoDB...');
-        const products = await Product.find().sort({ updatedAt: -1 });
-        const data = products as unknown as IProduct[];
-        productsCache = { data, expiresAt: now + PRODUCT_CACHE_TTL_MS };
-        return data;
+        if (brand) {
+            filter.brand_name = brand;
+        }
+
+        const [total, products] = await Promise.all([
+            Product.countDocuments(filter),
+            Product.find(filter).sort(sort).skip(skip).limit(limit)
+        ]);
+
+        return {
+            data: products as unknown as IProduct[],
+            total,
+            page,
+            totalPages: Math.ceil(total / limit)
+        };
     }
 
 
@@ -115,7 +117,6 @@ export class ProductService {
     static async createProduct(data: Partial<IProduct>) {
         const product = new Product(data);
         const saved = await product.save();
-        invalidateProductsCache(); // new product added to catalog
         return saved;
     }
 
@@ -152,8 +153,19 @@ export class ProductService {
             cloudinaryId: result.public_id
         });
 
-        await product.save();
-        invalidateProductsCache(); // new product added to catalog
+        try {
+            await product.save();
+        } catch (error) {
+            // Rollback Cloudinary upload if DB save fails
+            logger.error(`Product save failed, rolling back Cloudinary image: ${result.public_id}`);
+            try {
+                await cloudinary.uploader.destroy(result.public_id);
+            } catch (cleanupError) {
+                logger.error(`Failed to cleanup Cloudinary image ${result.public_id}: ${cleanupError}`);
+            }
+            throw error;
+        }
+
         logger.info(`Product ${product.product_code} created with Cloudinary image`);
 
         return product;
@@ -177,7 +189,6 @@ export class ProductService {
         }
 
         logger.info(`Product ${product.product_code} updated`);
-        invalidateProductsCache(); // product fields changed
         return product;
     }
 
@@ -204,7 +215,6 @@ export class ProductService {
 
         // Delete product from MongoDB
         await Product.findByIdAndDelete(productId);
-        invalidateProductsCache(); // product removed from catalog
         logger.info(`Product ${product.product_code} deleted`);
     }
 }

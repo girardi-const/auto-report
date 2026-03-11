@@ -11,7 +11,6 @@ import { ClientInfo } from "./ClientInfo";
 import { FinalCashDiscount } from "./FinalCashDiscount";
 import { useReportState } from "../hooks/useReportState";
 import { useBrands } from "../hooks/useBrands";
-import { useProducts } from "../hooks/useProducts";
 import { useReportActions } from "../hooks/useReportActions";
 import { SectionCard } from "./SectionCard";
 import { FloatingActionBar } from "./FloatingActionBar";
@@ -44,7 +43,6 @@ function buildSectionsPayload(sections: Section[], calculateSubtotal: (prods: Se
 export default function ReportForm() {
     const { state, actions, utils } = useReportState();
     const { brandNames: brands } = useBrands();
-    const { products: catalogProducts } = useProducts();
     const { saveReport, updateReport, saving } = useReportActions();
 
     const { especificador, contact, consultor, sections, cashDiscount, loading, clientInfo } = state;
@@ -82,12 +80,19 @@ export default function ReportForm() {
         }
 
         if (code.length >= 3) {
-            timers.current[productId] = setTimeout(() => {
+            timers.current[productId] = setTimeout(async () => {
                 setLoading(productId);
 
-                const match = catalogProducts.find(
-                    (p) => p.product_code.toLowerCase() === code.toLowerCase()
-                );
+                let match = null;
+                try {
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/products/${code}`);
+                    if (res.ok) {
+                        const json = await res.json();
+                        match = json.data;
+                    }
+                } catch (e) {
+                    console.error("Failed to search product by code", e);
+                }
 
                 setSections((prev: Section[]) => prev.map(s => {
                     if (s.id !== sectionId) return s;

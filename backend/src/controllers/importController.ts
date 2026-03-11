@@ -4,6 +4,7 @@ import { ImportBackup } from '../models/ImportBackup';
 import { Product } from '../models/Product';
 import { createSuccessResponse, createErrorResponse } from '../types/apiResponse';
 import { logger } from '../utils/logger';
+import { UploadImportSchema, DeleteImportQuerySchema, ImportPaginationSchema } from '../validators/importValidator';
 
 // Mock function to simulate processing delay
 const simulateProcessing = async (importId: string) => {
@@ -19,7 +20,7 @@ const simulateProcessing = async (importId: string) => {
 
 export const uploadImport = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { brandId } = req.body;
+        const { brandId } = UploadImportSchema.parse(req.body);
         // The file is handled by multer in the route and available in req.file
         // But for this initial version we don't parse it.
 
@@ -28,25 +29,24 @@ export const uploadImport = async (req: Request, res: Response): Promise<void> =
             return;
         }
 
-        // Concurrency lock: Check if any import is currently processing
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+
+        // Atomically release any stale lock
+        await Import.updateMany(
+            { status: 'processing', createdAt: { $lt: tenMinutesAgo } },
+            { $set: { status: 'failed' } }
+        );
+
+        // Check if there is still an active processing import
         const activeImport = await Import.findOne({ status: 'processing' });
         if (activeImport) {
-            // Check for stale lock (> 10 minutes)
-            const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-            if (activeImport.createdAt && activeImport.createdAt < tenMinutesAgo) {
-                // Stale lock, release it
-                activeImport.status = 'failed';
-                await activeImport.save();
-                logger.warn(`Released stale import lock for ${activeImport._id}`);
-            } else {
-                res.status(429).json(
-                    createErrorResponse(
-                        'RATE_LIMIT_EXCEEDED',
-                        'Outra importação já está em andamento. Aguarde a conclusão.'
-                    )
-                );
-                return;
-            }
+            res.status(429).json(
+                createErrorResponse(
+                    'RATE_LIMIT_EXCEEDED',
+                    'Outra importação já está em andamento. Aguarde a conclusão.'
+                )
+            );
+            return;
         }
 
         const newImport = new Import({
@@ -71,9 +71,7 @@ export const uploadImport = async (req: Request, res: Response): Promise<void> =
 
 export const getImports = async (req: Request, res: Response): Promise<void> => {
     try {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
-        const includeDeleted = req.query.includeDeleted === 'true';
+        const { page, limit, includeDeleted } = ImportPaginationSchema.parse(req.query);
 
         const query = includeDeleted ? {} : { isDeleted: false };
         const skip = (page - 1) * limit;
@@ -121,12 +119,7 @@ export const getImportById = async (req: Request, res: Response): Promise<void> 
 export const deleteImport = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
-        const mode = req.query.mode as 'full' | 'file-only';
-
-        if (!mode || !['full', 'file-only'].includes(mode)) {
-            res.status(400).json(createErrorResponse('VALIDATION_ERROR', 'Modo inválido.'));
-            return;
-        }
+        const { mode } = DeleteImportQuerySchema.parse(req.query);
 
         const importDoc = await Import.findById(id);
         if (!importDoc) {
@@ -146,25 +139,40 @@ export const deleteImport = async (req: Request, res: Response): Promise<void> =
             // Full rollback
             const backups = await ImportBackup.find({ importId: id, restoredAt: null });
 
+            const productBulkOps = [];
+            const backupBulkOps = [];
             let restoredCount = 0;
             let deletedCount = 0;
 
             for (const backup of backups) {
                 if (backup.action === 'created') {
-                    // product was created, so we delete it
-                    await Product.findByIdAndDelete(backup.productId);
+                    productBulkOps.push({ deleteOne: { filter: { _id: backup.productId } } });
                     deletedCount++;
                 } else if (backup.action === 'updated') {
-                    // product was updated, restore previous state
-                    // Use Any cast if types clash, but we replace document
                     if (backup.snapshotBefore) {
-                        await Product.findByIdAndUpdate(backup.productId, backup.snapshotBefore, { overwrite: true });
+                        productBulkOps.push({
+                            replaceOne: {
+                                filter: { _id: backup.productId },
+                                replacement: backup.snapshotBefore
+                            }
+                        });
                         restoredCount++;
                     }
                 }
+                
+                backupBulkOps.push({
+                    updateOne: {
+                        filter: { _id: backup._id },
+                        update: { $set: { restoredAt: new Date() } }
+                    }
+                });
+            }
 
-                backup.restoredAt = new Date();
-                await backup.save();
+            if (productBulkOps.length > 0) {
+                await Product.bulkWrite(productBulkOps as any);
+            }
+            if (backupBulkOps.length > 0) {
+                await ImportBackup.bulkWrite(backupBulkOps as any);
             }
 
             importDoc.isDeleted = true;

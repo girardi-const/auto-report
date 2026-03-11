@@ -9,7 +9,10 @@ dist/
 # Ignore plans folder
 plans/
 
+
+
 # Ignore all .md files except README.md
+.xlsx
 *.md
 !README.md
 **/README.md

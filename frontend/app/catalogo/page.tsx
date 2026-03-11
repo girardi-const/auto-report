@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Image from 'next/image';
 import { useProducts } from '../../hooks/useProducts';
+import { useBrands } from '../../hooks/useBrands';
 import { CatalogProduct, EditModalProps } from '../../types';
 import {
     Search,
@@ -276,7 +277,22 @@ function DeleteConfirmModal({ product, onClose, onDeleted, getIdToken }: DeleteM
 export default function ProductsPage() {
     const { user, loading: authLoading, isAdmin, getIdToken } = useAuth();
     const router = useRouter();
-    const { products, loading, error, refetch } = useProducts();
+
+    // ── Search & Filter State
+    const [rawSearch, setRawSearch] = useState('');
+    const [search, setSearch] = useState('');
+    const [brand, setBrand] = useState('');
+    const [page, setPage] = useState(1);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const { products: pageItems, total, totalPages, loading, error, refetch } = useProducts({
+        page,
+        limit: PAGE_SIZE,
+        search,
+        brand
+    });
+
+    const { brandNames: brandOptions } = useBrands();
 
     // Modals state
     const [editProduct, setEditProduct] = useState<CatalogProduct | null>(null);
@@ -287,12 +303,7 @@ export default function ProductsPage() {
         if (!authLoading && !user) router.push('/sign-in');
     }, [user, authLoading, router]);
 
-    // ── Search state (raw input) + debounced value
-    const [rawSearch, setRawSearch] = useState('');
-    const [search, setSearch] = useState('');
-    const [brand, setBrand] = useState('');
-    const [page, setPage] = useState(1);
-    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
@@ -316,31 +327,8 @@ export default function ProductsPage() {
         setPage(1);
     }, []);
 
-    // ── Derived brand list (unique, sorted)
-    const brandOptions = useMemo(
-        () => [...new Set(products.map((p) => p.brand_name))].sort(),
-        [products]
-    );
-
-    // ── Filtered list
-    const filtered = useMemo<CatalogProduct[]>(() => {
-        const q = search.toUpperCase();
-        return products.filter((p) => {
-            const matchesBrand = brand ? p.brand_name === brand : true;
-            const matchesSearch = q
-                ? p.product_code.includes(q) || (p.description || '').toUpperCase().includes(q)
-                : true;
-            return matchesBrand && matchesSearch;
-        });
-    }, [products, search, brand]);
-
-    // ── Pagination slice
-    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-    const safePage = Math.min(page, totalPages);
-    const pageItems = useMemo(
-        () => filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
-        [filtered, safePage]
-    );
+    // No longer doing client-side filtering and slicing
+    // as it's handled completely by the server API
 
     const hasFilters = rawSearch !== '' || brand !== '';
     const colCount = isAdmin ? 5 : 4;
@@ -386,7 +374,7 @@ export default function ProductsPage() {
                         <p className="text-gray-800/40 text-xs font-medium mt-0.5">
                             {loading
                                 ? 'Carregando…'
-                                : `${filtered.length} de ${products.length} produtos`}
+                                : `${pageItems.length} de ${total} produtos`}
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -489,7 +477,7 @@ export default function ProductsPage() {
                                     Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} cols={colCount} />)}
 
                                 {/* Empty state */}
-                                {!loading && filtered.length === 0 && (
+                                {!loading && pageItems.length === 0 && (
                                     <tr>
                                         <td colSpan={colCount} className="px-6 py-20 text-center">
                                             <div className="flex flex-col items-center gap-3 text-gray-300">
@@ -574,24 +562,24 @@ export default function ProductsPage() {
                     </div>
 
                     {/* ── Pagination ──────────────────────────────────── */}
-                    {!loading && filtered.length > PAGE_SIZE && (
+                    {!loading && total > PAGE_SIZE && (
                         <div className="border-t border-gray-100 px-6 py-4 flex items-center justify-between gap-4">
                             <span className="text-xs text-gray-400 font-medium">
                                 Página{' '}
-                                <span className="font-black text-secondary">{safePage}</span> de{' '}
+                                <span className="font-black text-secondary">{page}</span> de{' '}
                                 <span className="font-black text-secondary">{totalPages}</span>
                             </span>
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                    disabled={safePage === 1}
+                                    disabled={page === 1}
                                     className="p-2 rounded-lg border border-gray-100 hover:border-primary hover:text-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
                                     <ChevronLeft size={16} />
                                 </button>
                                 <button
                                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                                    disabled={safePage === totalPages}
+                                    disabled={page === totalPages}
                                     className="p-2 rounded-lg border border-gray-100 hover:border-primary hover:text-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
                                     <ChevronRight size={16} />

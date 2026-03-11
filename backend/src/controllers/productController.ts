@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ProductService } from '../services/productService';
 import { createSuccessResponse, createErrorResponse } from '../types/apiResponse';
+import { ProductQuerySchema, CreateProductSchema, CreateProductWithImageSchema, UpdateProductSchema } from '../validators/productValidator';
 
 /**
  * GET /api/v1/products/:code
@@ -33,12 +34,13 @@ export const getProductByCode = async (
  * List all products in the database.
  */
 export const listProducts = async (
-    _req: Request,
+    req: Request,
     res: Response,
     next: NextFunction
 ): Promise<void> => {
     try {
-        const products = await ProductService.listProducts();
+        const query = ProductQuerySchema.parse(req.query);
+        const products = await ProductService.listProducts(query);
         res.json(createSuccessResponse(products));
     } catch (error) {
         next(error);
@@ -55,7 +57,8 @@ export const createProduct = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const product = await ProductService.createProduct(req.body);
+        const parsedBody = CreateProductSchema.parse(req.body);
+        const product = await ProductService.createProduct(parsedBody);
         res.status(201).json(createSuccessResponse(product));
     } catch (error) {
         next(error);
@@ -80,17 +83,10 @@ export const createProductWithImage = async (
             return;
         }
 
-        const { code, description, brand, price } = req.body;
-
-        if (!code || !description || !brand || !price) {
-            res.status(400).json(
-                createErrorResponse('MISSING_FIELDS', 'Todos os campos são obrigatórios')
-            );
-            return;
-        }
+        const parsedBody = CreateProductWithImageSchema.parse(req.body);
 
         const product = await ProductService.createProductWithImage(
-            { code, description, brand, price: parseFloat(price) },
+            { ...parsedBody },
             req.file.buffer
         );
 
@@ -116,14 +112,9 @@ export const updateProduct = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const { description, brand_name, base_price } = req.body;
-        const updates: Record<string, unknown> = {};
+        const parsedBody = UpdateProductSchema.parse(req.body);
 
-        if (description !== undefined) updates.description = description;
-        if (brand_name !== undefined) updates.brand_name = brand_name;
-        if (base_price !== undefined) updates.base_price = base_price;
-
-        const product = await ProductService.updateProduct(req.params.id, updates);
+        const product = await ProductService.updateProduct(req.params.id, parsedBody);
         res.json(createSuccessResponse(product));
     } catch (error: any) {
         if (error.message === 'Produto não encontrado') {

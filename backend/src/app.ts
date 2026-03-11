@@ -35,8 +35,12 @@ app.use(compression());
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
     limit: 500, // 500 req por IP por janela — seguro para 4+ usuários internos atrás do mesmo IP
+    keyGenerator: (req: Request) => {
+        // Use authorization token if present to identify specific users, otherwise fallback to IP
+        return req.headers.authorization || req.ip || 'unknown_ip';
+    },
     message: {
-        error: 'Muitas requisições deste IP, tente novamente após 15 minutos.',
+        error: 'Muitas requisições deste usuário/IP, tente novamente após 15 minutos.',
         retryAfter: '15 minutos',
     },
     statusCode: 429,
@@ -45,7 +49,7 @@ const limiter = rateLimit({
     handler: (_req, res) => {
         res.status(429).json({
             error: 'Limite de requisições excedido',
-            message: 'Muitas requisições deste IP, tente novamente após 15 minutos.',
+            message: 'Muitas requisições deste usuário/IP, tente novamente após 15 minutos.',
             retryAfter: '15 minutos',
         });
     }

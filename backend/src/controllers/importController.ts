@@ -8,6 +8,8 @@ import { logger } from '../utils/logger';
 import { DeleteImportQuerySchema, ImportPaginationSchema } from '../validators/importValidator';
 import { z } from 'zod';
 import xlsx from 'xlsx';
+import cloudinary from '../config/cloudinary';
+import { scrapeProductImage } from '../services/imageScraperService';
 
 // Mock function to simulate processing delay
 const processImport = async (importId: string, fileBuffer: Buffer) => {
@@ -117,68 +119,181 @@ const processImport = async (importId: string, fileBuffer: Buffer) => {
             await Brand.insertMany(missingBrands);
         }
 
-        // 6. Handle Products & Backups
+        // 6. Handle Products & Backups — with real-time progress tracking
+        const totalRows = validRows.length;
+
+        // Initialise progress in DB: let the frontend know total rows
+        await Import.findByIdAndUpdate(importId, {
+            'progress.total': totalRows,
+            'progress.processed': 0,
+            'progress.percent': 0,
+        });
+
         const existingProducts = await Product.find({ product_code: { $in: Array.from(productCodesInFile) } });
         const existingProductMap = new Map(existingProducts.map(p => [p.product_code, p]));
 
-        const productBulkOps = [];
-        const backupDocs = [];
+        /**
+         * Upload an image buffer to Cloudinary and return { imageurl, cloudinaryId }.
+         * Returns null if upload fails (errors are logged, not thrown).
+         */
+        const uploadToCloudinary = async (buffer: Buffer): Promise<{ imageurl: string; cloudinaryId: string } | null> => {
+            try {
+                const result = await new Promise<any>((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                        {
+                            folder: 'teste',
+                            resource_type: 'image',
+                        },
+                        (error, result) => {
+                            if (error) reject(error);
+                            else resolve(result);
+                        }
+                    );
+                    stream.end(buffer);
+                });
+                return { imageurl: result.secure_url, cloudinaryId: result.public_id };
+            } catch (err: any) {
+                logger.warn(`[Import] Cloudinary upload failed: ${err.message}`);
+                return null;
+            }
+        };
 
-        for (const row of validRows) {
-            const productCode = row['Código do Produto'];
-            const description = row['Nome do Produto'];
-            const basePrice = row['Preço de Tabela'];
-            const brandName = row['Marca'];
-            const imageUrl = row['Link de Imagem'];
+        const productBulkOps: any[] = [];
+        const backupDocs: any[] = [];
 
-            const existingProduct = existingProductMap.get(productCode);
+        // --- Concurrency pool: process up to N rows simultaneously ---
+        const CONCURRENCY = 6;
+        let processedCount = 0;
+        let lastWrittenPercent = -1;
 
-            if (existingProduct) {
-                // Update
-                productBulkOps.push({
-                    updateOne: {
-                        filter: { product_code: productCode },
-                        update: {
-                            $set: {
-                                description,
-                                base_price: basePrice,
-                                brand_name: brandName,
-                                ...(imageUrl && { imageurl: imageUrl })
+        /**
+         * Throttled progress writer: writes to MongoDB only when the percent
+         * changes by ≥5 points (or on the very first row), to avoid flooding DB.
+         */
+        const writeProgress = async () => {
+            processedCount++;
+            const percent = Math.round((processedCount / totalRows) * 100);
+            if (percent >= lastWrittenPercent + 5 || processedCount === 1 || processedCount === totalRows) {
+                lastWrittenPercent = percent;
+                await Import.findByIdAndUpdate(importId, {
+                    'progress.processed': processedCount,
+                    'progress.percent': percent,
+                }).catch(() => { }); // fire-and-forget, never block the row
+            }
+        };
+
+        /**
+         * Simple semaphore to cap parallel work.
+         * Prevents hammering DuckDuckGo while still running much faster than serial.
+         */
+        const createSemaphore = (limit: number) => {
+            let active = 0;
+            const queue: (() => void)[] = [];
+            const acquire = () => new Promise<void>(resolve => {
+                if (active < limit) { active++; resolve(); }
+                else queue.push(resolve);
+            });
+            const release = () => {
+                active--;
+                const next = queue.shift();
+                if (next) { active++; next(); }
+            };
+            return { acquire, release };
+        };
+        const sem = createSemaphore(CONCURRENCY);
+
+        type RowResult = {
+            bulkOp: any;
+            backupDoc: any;
+            countType: 'created' | 'updated';
+        };
+
+        const processRow = async (row: any): Promise<RowResult> => {
+            await sem.acquire();
+            try {
+                const productCode = row['Código do Produto'];
+                const description = row['Nome do Produto'];
+                const basePrice = row['Preço de Tabela'];
+                const brandName = row['Marca'];
+                let imageUrl: string = row['Link de Imagem'] || '';
+                let cloudinaryId: string | undefined;
+
+                const existingProduct = existingProductMap.get(productCode);
+
+                // --- Auto-scrape image if no link provided ---
+                const needsScrape = !imageUrl;
+                const existingHasNoImage = existingProduct && !existingProduct.imageurl;
+
+                if (needsScrape && (!existingProduct || existingHasNoImage)) {
+                    logger.info(`[Import] No image for "${productCode}", attempting scrape...`);
+                    const scraped = await scrapeProductImage(description, brandName);
+                    if (scraped) {
+                        const uploaded = await uploadToCloudinary(scraped.buffer);
+                        if (uploaded) {
+                            imageUrl = uploaded.imageurl;
+                            cloudinaryId = uploaded.cloudinaryId;
+                            logger.info(`[Import] Scraped + uploaded image for "${productCode}": ${imageUrl}`);
+                        }
+                    }
+                }
+
+                if (existingProduct) {
+                    const imageUpdate: Record<string, string> = {};
+                    if (imageUrl) imageUpdate.imageurl = imageUrl;
+                    if (cloudinaryId) imageUpdate.cloudinaryId = cloudinaryId;
+
+                    return {
+                        bulkOp: {
+                            updateOne: {
+                                filter: { product_code: productCode },
+                                update: { $set: { description, base_price: basePrice, brand_name: brandName, ...imageUpdate } }
                             }
-                        }
-                    }
-                });
+                        },
+                        backupDoc: { importId, productId: existingProduct._id, action: 'updated', snapshotBefore: existingProduct.toObject() },
+                        countType: 'updated',
+                    };
+                } else {
+                    const newProductId = new (importDoc.db.model('Product')).base.Types.ObjectId();
+                    return {
+                        bulkOp: {
+                            insertOne: {
+                                document: {
+                                    _id: newProductId,
+                                    product_code: productCode,
+                                    description,
+                                    base_price: basePrice,
+                                    brand_name: brandName,
+                                    imageurl: imageUrl,
+                                    ...(cloudinaryId && { cloudinaryId }),
+                                }
+                            }
+                        },
+                        backupDoc: { importId, productId: newProductId, action: 'created', snapshotBefore: null },
+                        countType: 'created',
+                    };
+                }
+            } finally {
+                sem.release();
+            }
+        };
 
-                backupDocs.push({
-                    importId,
-                    productId: existingProduct._id,
-                    action: 'updated',
-                    snapshotBefore: existingProduct.toObject(),
-                });
-                updatedCount++;
+        // Run all rows in parallel (capped by the semaphore)
+        const rowResults = await Promise.allSettled(
+            validRows.map(row => processRow(row).then(async result => {
+                await writeProgress();
+                return result;
+            }))
+        );
+
+        for (const result of rowResults) {
+            if (result.status === 'fulfilled') {
+                productBulkOps.push(result.value.bulkOp);
+                backupDocs.push(result.value.backupDoc);
+                if (result.value.countType === 'created') createdCount++;
+                else updatedCount++;
             } else {
-                // Insert
-                const newProductId = new (importDoc.db.model('Product')).base.Types.ObjectId();
-                productBulkOps.push({
-                    insertOne: {
-                        document: {
-                            _id: newProductId,
-                            product_code: productCode,
-                            description,
-                            base_price: basePrice,
-                            brand_name: brandName,
-                            imageurl: imageUrl,
-                        }
-                    }
-                });
-
-                backupDocs.push({
-                    importId,
-                    productId: newProductId,
-                    action: 'created',
-                    snapshotBefore: null,
-                });
-                createdCount++;
+                logger.error(`[Import] Unexpected row processing error: ${result.reason}`);
+                failedCount++;
             }
         }
 
@@ -190,8 +305,9 @@ const processImport = async (importId: string, fileBuffer: Buffer) => {
             await ImportBackup.insertMany(backupDocs);
         }
 
-        // 7. Finish Import
+        // 7. Finish Import — mark 100%
         importDoc.status = 'done';
+        importDoc.progress = { processed: totalRows, total: totalRows, percent: 100 };
         importDoc.summary = {
             total: rawJson.length,
             created: createdCount,

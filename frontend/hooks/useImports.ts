@@ -18,6 +18,12 @@ export interface ImportSummary {
     errors: ImportError[];
 }
 
+export interface ImportProgress {
+    processed: number;
+    total: number;
+    percent: number;
+}
+
 export interface ImportDoc {
     _id: string;
     filename: string;
@@ -25,6 +31,7 @@ export interface ImportDoc {
     status: 'processing' | 'done' | 'failed';
     createdBy: string;
     summary: ImportSummary;
+    progress: ImportProgress;
     isDeleted: boolean;
     createdAt: string;
     updatedAt: string;

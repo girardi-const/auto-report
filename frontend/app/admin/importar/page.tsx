@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState, FormEvent, useRef, ChangeEvent } from 'react';
+import { useEffect, useState, FormEvent, useRef, ChangeEvent, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useImports, ImportDoc } from '@/hooks/useImports';
 import { toast } from 'sonner';
-import { Loader2, UploadCloud, FileText, Trash2, AlertTriangle, ExternalLink, Activity } from 'lucide-react';
+import { Loader2, UploadCloud, FileText, Trash2, AlertTriangle, ExternalLink, Activity, Clock } from 'lucide-react';
 import Link from 'next/link';
 import UnderCon from '@/components/UnderCon';
 
@@ -28,12 +28,14 @@ export default function ImportPage() {
 
     // Form state
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
     const [submitting, setSubmitting] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Polling state
     const [pollingImportId, setPollingImportId] = useState<string | null>(null);
+    const [pollingImport, setPollingImport] = useState<ImportDoc | null>(null);
+    const importStartTime = useRef<number | null>(null);
+    const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
 
     // Delete Modal state
     const [deleteModalImport, setDeleteModalImport] = useState<ImportDoc | null>(null);
@@ -61,9 +63,27 @@ export default function ImportPage() {
             interval = setInterval(async () => {
                 const updatedImport = await getImportById(pollingImportId);
                 if (updatedImport) {
+                    setPollingImport(updatedImport);
+
+                    // Compute time remaining from progress
+                    const pct = updatedImport.progress?.percent ?? 0;
+                    if (pct > 0 && pct < 100 && importStartTime.current) {
+                        const elapsed = (Date.now() - importStartTime.current) / 1000; // seconds
+                        const totalEstimated = elapsed / (pct / 100);
+                        const remaining = Math.max(0, totalEstimated - elapsed);
+                        if (remaining < 60) {
+                            setTimeRemaining(`${Math.ceil(remaining)}s`);
+                        } else {
+                            setTimeRemaining(`${Math.ceil(remaining / 60)}min`);
+                        }
+                    }
+
                     if (updatedImport.status === 'done' || updatedImport.status === 'failed') {
                         clearInterval(interval);
                         setPollingImportId(null);
+                        setPollingImport(null);
+                        setTimeRemaining(null);
+                        importStartTime.current = null;
                         setSubmitting(false);
 
                         if (updatedImport.status === 'done') {
@@ -74,7 +94,7 @@ export default function ImportPage() {
                         fetchImports();
                     }
                 }
-            }, 3000);
+            }, 2000);
         }
         return () => {
             if (interval) clearInterval(interval);
@@ -111,11 +131,13 @@ export default function ImportPage() {
         }
 
         setSubmitting(true);
+        importStartTime.current = Date.now();
         const createdImport = await uploadImport(selectedFile);
 
         if (createdImport) {
             if (createdImport.status === 'processing') {
                 setPollingImportId(createdImport._id);
+                setPollingImport(createdImport);
                 setSelectedFile(null);
                 if (fileInputRef.current) fileInputRef.current.value = '';
                 toast.success('Arquivo enviado com sucesso. Processamento iniciado...');
@@ -172,18 +194,53 @@ export default function ImportPage() {
                     )}
 
                     {/* Processing Overlay */}
-                    {pollingImportId && (
-                        <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center border border-gray-100 rounded-3xl shadow-xl min-h-[400px]">
-                            <div className="relative">
-                                <div className="w-24 h-24 border-4 border-primary/20 rounded-full animate-spin border-t-primary ease-in-out"></div>
-                                <UploadCloud className="w-8 h-8 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+                    {pollingImportId && (() => {
+                        const pct = pollingImport?.progress?.percent ?? 0;
+                        const processed = pollingImport?.progress?.processed ?? 0;
+                        const total = pollingImport?.progress?.total ?? 0;
+
+                        return (
+                            <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center border border-gray-100 rounded-3xl shadow-xl min-h-[400px] px-10">
+                                {/* Icon */}
+                                <div className="relative mb-6">
+                                    <div className="w-20 h-20 border-4 border-primary/20 rounded-full animate-spin border-t-primary" />
+                                    <UploadCloud className="w-7 h-7 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+                                </div>
+
+                                <h2 className="text-xl font-bold text-gray-800 tracking-tight mb-1">Processando importação...</h2>
+                                <p className="text-gray-400 text-xs font-medium mb-6">Por favor, não feche ou saia desta página</p>
+
+                                {/* Progress bar */}
+                                <div className="w-full max-w-sm">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Progresso</span>
+                                        <span className="text-2xl font-black text-primary tabular-nums">{pct}%</span>
+                                    </div>
+                                    <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-gradient-to-r from-primary to-red-400 rounded-full transition-all duration-700 ease-out"
+                                            style={{ width: `${pct}%` }}
+                                        />
+                                    </div>
+                                    <div className="flex justify-between mt-3 text-xs text-gray-400">
+                                        <span>
+                                            {total > 0 ? (
+                                                <>{processed} <span className="text-gray-300">/ {total} produtos</span></>
+                                            ) : (
+                                                <span className="animate-pulse">Preparando...</span>
+                                            )}
+                                        </span>
+                                        {timeRemaining && (
+                                            <span className="flex items-center gap-1 text-gray-400">
+                                                <Clock size={11} />
+                                                ~{timeRemaining} restantes
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                            <h2 className="mt-8 text-xl font-bold text-gray-800 tracking-tight">Processando importação...</h2>
-                            <p className="mt-2 text-gray-500 text-sm font-medium animate-pulse">
-                                Por favor, não feche ou saia desta página
-                            </p>
-                        </div>
-                    )}
+                        );
+                    })()}
 
                     {/* Import Form Section */}
                     <div className={`bg-white rounded-2xl shadow-lg border border-gray-100 p-8 ${pollingImportId ? 'opacity-50 pointer-events-none' : ''}`}>

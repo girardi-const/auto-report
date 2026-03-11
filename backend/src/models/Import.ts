@@ -9,6 +9,12 @@ export interface IImportError {
     reason: string;
 }
 
+export interface IImportProgress {
+    processed: number;   // rows fully handled so far
+    total: number;       // total rows in this import
+    percent: number;     // 0–100
+}
+
 export interface IImportSummary {
     total: number;
     created: number;
@@ -21,8 +27,9 @@ export interface IImport extends Document {
     filename: string;
     fileType: 'csv' | 'xlsx' | 'pdf';
     status: 'processing' | 'done' | 'failed';
-    createdBy: string; // Firebase user ID
+    createdBy: string;
     summary: IImportSummary;
+    progress: IImportProgress;
     isDeleted: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -68,7 +75,18 @@ const ImportSchema = new Schema<IImport>(
         },
         createdBy: {
             type: String,
-            required: true, // Firebase UUID
+            required: true,
+        },
+        progress: {
+            type: new Schema<IImportProgress>(
+                {
+                    processed: { type: Number, default: 0 },
+                    total: { type: Number, default: 0 },
+                    percent: { type: Number, default: 0 },
+                },
+                { _id: false }
+            ),
+            default: () => ({ processed: 0, total: 0, percent: 0 }),
         },
         summary: {
             type: ImportSummarySchema,

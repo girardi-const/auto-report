@@ -130,10 +130,6 @@ export class ProductService {
         // Upload image to Cloudinary
         const result = await new Promise<any>((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                    folder: 'products',
-                    resource_type: 'auto'
-                },
                 (error, result) => {
                     if (error) reject(error);
                     else resolve(result);
@@ -205,8 +201,15 @@ export class ProductService {
         // Delete image from Cloudinary if it exists
         if (product.cloudinaryId) {
             try {
-                await cloudinary.uploader.destroy(product.cloudinaryId);
-                logger.info(`Deleted Cloudinary image: ${product.cloudinaryId}`);
+                let publicId = product.cloudinaryId;
+                if (publicId.startsWith('product/')) {
+                    publicId = publicId.replace('product/', '');
+                } else if (publicId.startsWith('products/')) {
+                    publicId = publicId.replace('products/', '');
+                }
+
+                await cloudinary.uploader.destroy(publicId);
+                logger.info(`Deleted Cloudinary image: ${publicId}`);
             } catch (error) {
                 logger.error(`Failed to delete Cloudinary image: ${error}`);
                 // Continue with product deletion even if Cloudinary deletion fails

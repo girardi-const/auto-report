@@ -9,6 +9,7 @@ import { useBrands } from "@/hooks/useBrands";
 import { ImageUpload } from "@/components/ImageUpload";
 import { formatPriceInput } from "@/utils/formatters";
 import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 export default function CreateProductPage() {
     const { user, loading, isAdmin, getIdToken } = useAuth();
@@ -67,12 +68,12 @@ export default function CreateProductPage() {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            alert(`Produto salvo com sucesso!\nURL da imagem: ${result.data.imageurl}`);
+            toast.success(`Produto salvo com sucesso!`);
             setFormData({ description: "", code: "", price: "", brand: "" });
             setImage(null);
         } catch (error: any) {
             console.error("Erro ao salvar produto:", error);
-            alert(`Erro ao salvar produto: ${error.message}`);
+            toast.error(`Erro ao salvar produto: ${error.message}`);
         } finally {
             setSaving(false);
         }

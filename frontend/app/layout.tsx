@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Header from "../components/Header";
 import { AuthProvider } from '@/contexts/AuthContext';
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Girardi - Sistema de Relatórios",
@@ -21,6 +22,7 @@ export default function RootLayout({
           <main className="flex-1 flex flex-col bg-muted">
             {children}
           </main>
+          <Toaster />
         </body>
       </html>
     </AuthProvider>

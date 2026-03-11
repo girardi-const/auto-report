@@ -12,7 +12,7 @@ import UnderCon from '@/components/UnderCon';
 
 export default function ImportPage() {
     const { user, isAdmin, loading: authLoading } = useAuth();
-    const [underCon, setUnderCon] = useState(false);
+    const [underCon, setUnderCon] = useState(true);
     const router = useRouter();
 
     const {

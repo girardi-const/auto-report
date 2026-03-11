@@ -4,7 +4,6 @@ import { useEffect, useState, FormEvent, useRef, ChangeEvent } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useImports, ImportDoc } from '@/hooks/useImports';
-import { useBrands } from '@/hooks/useBrands';
 import { toast } from 'sonner';
 import { Loader2, UploadCloud, FileText, Trash2, AlertTriangle, ExternalLink, Activity } from 'lucide-react';
 import Link from 'next/link';
@@ -12,7 +11,7 @@ import UnderCon from '@/components/UnderCon';
 
 export default function ImportPage() {
     const { user, isAdmin, loading: authLoading } = useAuth();
-    const [underCon, setUnderCon] = useState(true);
+    const [underCon, setUnderCon] = useState(false);
     const router = useRouter();
 
     const {
@@ -25,11 +24,11 @@ export default function ImportPage() {
         deleteImport
     } = useImports();
 
-    const { brands, loading: brandsLoading } = useBrands();
+
 
     // Form state
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [selectedBrand, setSelectedBrand] = useState<string>('');
+
     const [submitting, setSubmitting] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -110,19 +109,14 @@ export default function ImportPage() {
             toast.error('Por favor, selecione um arquivo.');
             return;
         }
-        if (!selectedBrand) {
-            toast.error('Por favor, selecione a marca (brand) para a importação.');
-            return;
-        }
 
         setSubmitting(true);
-        const createdImport = await uploadImport(selectedFile, selectedBrand);
+        const createdImport = await uploadImport(selectedFile);
 
         if (createdImport) {
             if (createdImport.status === 'processing') {
                 setPollingImportId(createdImport._id);
                 setSelectedFile(null);
-                setSelectedBrand('');
                 if (fileInputRef.current) fileInputRef.current.value = '';
                 toast.success('Arquivo enviado com sucesso. Processamento iniciado...');
             } else {
@@ -199,22 +193,7 @@ export default function ImportPage() {
                         </h2>
 
                         <form onSubmit={handleFormSubmit} className="space-y-6">
-                            {/* Brand Selector */}
-                            <div className="flex flex-col gap-2">
-                                <label className="text-sm font-medium text-gray-700">Marca (Brand)</label>
-                                <select
-                                    value={selectedBrand}
-                                    onChange={(e) => setSelectedBrand(e.target.value)}
-                                    disabled={submitting || brandsLoading}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all duration-200 text-sm"
-                                    required
-                                >
-                                    <option value="" disabled>Selecione uma marca...</option>
-                                    {brands.map(b => (
-                                        <option key={b._id} value={b._id}>{b.brand_name}</option>
-                                    ))}
-                                </select>
-                            </div>
+
 
                             {/* Drag and Drop Zone */}
                             <div
@@ -252,7 +231,7 @@ export default function ImportPage() {
                             <div className="flex justify-end">
                                 <button
                                     type="submit"
-                                    disabled={submitting || !selectedFile || !selectedBrand}
+                                    disabled={submitting || !selectedFile}
                                     className="px-8 py-3 bg-primary hover:bg-[#c91e25] active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-primary/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm uppercase tracking-widest whitespace-nowrap flex items-center gap-2"
                                 >
                                     {submitting || pollingImportId ? (
@@ -298,7 +277,6 @@ export default function ImportPage() {
                                     <thead>
                                         <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wider bg-white">
                                             <th className="px-6 py-4 font-semibold">Arquivo</th>
-                                            <th className="px-6 py-4 font-semibold">Marca</th>
                                             <th className="px-6 py-4 font-semibold">Data</th>
                                             <th className="px-6 py-4 font-semibold">Status</th>
                                             <th className="px-6 py-4 font-semibold">Resumo</th>
@@ -311,9 +289,6 @@ export default function ImportPage() {
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <p className="font-medium text-gray-800">{imp.filename}</p>
                                                     <p className="text-xs text-gray-400 uppercase tracking-widest mt-0.5">{imp.fileType}</p>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-gray-600 font-medium">
-                                                    {imp.brandId?.brand_name || 'Desconhecida'}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-500">
                                                     {new Date(imp.createdAt).toLocaleString('pt-BR')}

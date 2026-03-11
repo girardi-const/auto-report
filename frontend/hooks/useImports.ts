@@ -22,7 +22,6 @@ export interface ImportDoc {
     _id: string;
     filename: string;
     fileType: 'csv' | 'xlsx' | 'pdf';
-    brandId: { _id: string; brand_name: string };
     status: 'processing' | 'done' | 'failed';
     createdBy: string;
     summary: ImportSummary;
@@ -80,13 +79,12 @@ export function useImports() {
     );
 
     const uploadImport = useCallback(
-        async (file: File, brandId: string): Promise<ImportDoc | null> => {
+        async (file: File): Promise<ImportDoc | null> => {
             setLoading(true);
             setError(null);
             try {
                 const formData = new FormData();
                 formData.append('file', file);
-                formData.append('brandId', brandId);
 
                 const res = await fetch(`${API}/admin/imports/upload`, {
                     method: 'POST',

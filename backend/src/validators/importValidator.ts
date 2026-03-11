@@ -1,8 +1,6 @@
 import { z } from 'zod';
 
-export const UploadImportSchema = z.object({
-    brandId: z.string().min(1, 'Brand ID é obrigatório.'),
-});
+export const UploadImportSchema = z.object({});
 
 export const DeleteImportQuerySchema = z.object({
     mode: z.enum(['full', 'file-only'])

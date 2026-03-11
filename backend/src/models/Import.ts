@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
 /**
  * Import Model - Tracks file uploads and processing status
@@ -20,7 +20,6 @@ export interface IImportSummary {
 export interface IImport extends Document {
     filename: string;
     fileType: 'csv' | 'xlsx' | 'pdf';
-    brandId: Types.ObjectId; // Sent by user at upload time
     status: 'processing' | 'done' | 'failed';
     createdBy: string; // Firebase user ID
     summary: IImportSummary;
@@ -59,12 +58,6 @@ const ImportSchema = new Schema<IImport>(
             type: String,
             required: true,
             enum: ['csv', 'xlsx', 'pdf'],
-        },
-        brandId: {
-            type: Schema.Types.ObjectId,
-            ref: 'Brand',
-            required: true,
-            index: true,
         },
         status: {
             type: String,

@@ -2,32 +2,221 @@ import { Request, Response } from 'express';
 import { Import } from '../models/Import';
 import { ImportBackup } from '../models/ImportBackup';
 import { Product } from '../models/Product';
+import { Brand } from '../models/Brand';
 import { createSuccessResponse, createErrorResponse } from '../types/apiResponse';
 import { logger } from '../utils/logger';
-import { UploadImportSchema, DeleteImportQuerySchema, ImportPaginationSchema } from '../validators/importValidator';
+import { DeleteImportQuerySchema, ImportPaginationSchema } from '../validators/importValidator';
+import { z } from 'zod';
+import xlsx from 'xlsx';
 
 // Mock function to simulate processing delay
-const simulateProcessing = async (importId: string) => {
+const processImport = async (importId: string, fileBuffer: Buffer) => {
     try {
-        await new Promise((resolve) => setTimeout(resolve, 5000)); // 5 seconds processing
-        await Import.findByIdAndUpdate(importId, { status: 'done' });
-        logger.info(`Import ${importId} processing completed (mock).`);
-    } catch (error) {
-        logger.error(`Error in mock processing for import ${importId}:`, error);
-        await Import.findByIdAndUpdate(importId, { status: 'failed' });
+        const importDoc = await Import.findById(importId);
+        if (!importDoc) return;
+
+        // 1. Convert Buffer to Workbook
+        const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+
+        // 2. Parse exactly as json (raw: false converts formatted numbers like '1127,7' directly to strings instead of math numbers)
+        const rawJson: any[] = xlsx.utils.sheet_to_json(worksheet, { defval: '', raw: false });
+        // 3. Validation Schema
+        const RowSchema = z.object({
+            'Código do Produto': z.string().min(1, 'Código é obrigatório').trim(),
+            'Nome do Produto': z.string().min(1, 'Nome é obrigatório').trim(),
+            'Preço de Tabela': z.coerce.number().positive('Preço deve ser maior que zero'),
+            'Marca': z.string().min(1, 'Marca é obrigatória').trim(),
+            'Link de Imagem': z.string().trim().optional().default(''),
+        });
+
+        const errors: { productCode?: string; reason: string }[] = [];
+        let createdCount = 0;
+        let updatedCount = 0;
+        let failedCount = 0;
+
+        const productCodesInFile = new Set<string>();
+        const validRows: any[] = [];
+        const uniqueBrandNames = new Set<string>();
+
+        // 4. Validate and deduplicate rows
+        for (const [index, row] of rawJson.entries()) {
+            const rowNumber = index + 2; // +1 for 0-index, +1 for header
+            // Normalize keys to handle trailing \n and case differences in Excel headers
+            const normalizedRow: any = {};
+            for (const key of Object.keys(row)) {
+                normalizedRow[key.trim().toLowerCase()] = row[key];
+            }
+
+            // Handle comma as decimal separator in prices (e.g. "1127,7" -> 1127.7, or "1.240,47" -> 1240.47)
+            let rawPrice = normalizedRow['preço de tabela'] || normalizedRow['preco de tabela'] || normalizedRow['preço'] || normalizedRow['preco'] || normalizedRow['preã§o de tabela'];
+            if (typeof rawPrice === 'string') {
+                rawPrice = rawPrice.trim();
+                // If the price string contains a comma, it indicates Brazilian formatting
+                if (rawPrice.includes(',')) {
+                    // remove thousands separators (if they exist) and replace comma with dot
+                    rawPrice = rawPrice.replace(/\./g, '').replace(',', '.');
+                }
+                // If it doesn't contain a comma, assume it's already in standard math format (1240.47)
+            }
+
+            // Map possible column variations (including garbled UTF-8 variations from CSVs like CÃ³digo)
+            const cleanRow = {
+                'Código do Produto': String(normalizedRow['código do produto'] || normalizedRow['cã³digo do produto'] || normalizedRow['codigo do produto'] || normalizedRow['codigo'] || '').trim(),
+                'Nome do Produto': String(normalizedRow['nome do produto'] || normalizedRow['nome'] || '').trim(),
+                'Preço de Tabela': rawPrice,
+                'Marca': String(normalizedRow['marca'] || '').trim(),
+                'Link de Imagem': String(normalizedRow['link de imagem'] || normalizedRow['imagem'] || '').trim(),
+            };
+
+            console.log(cleanRow)
+
+            const parsed = RowSchema.safeParse(cleanRow);
+            if (!parsed.success) {
+                const issueMessages = parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
+                errors.push({ reason: `Linha ${rowNumber}: ${issueMessages}` });
+                failedCount++;
+                continue;
+            }
+
+            const data = parsed.data;
+
+            // Optional image link URL validation if not empty
+            if (data['Link de Imagem']) {
+                try {
+                    new URL(data['Link de Imagem']);
+                } catch {
+                    errors.push({ productCode: data['Código do Produto'], reason: `Linha ${rowNumber}: Link de Imagem inválido` });
+                    failedCount++;
+                    continue;
+                }
+            }
+
+            // Check for duplicates in the spreadsheet
+            if (productCodesInFile.has(data['Código do Produto'])) {
+                errors.push({ productCode: data['Código do Produto'], reason: `Linha ${rowNumber}: Código do produto duplicado na planilha` });
+                failedCount++;
+                continue;
+            }
+
+            productCodesInFile.add(data['Código do Produto']);
+            uniqueBrandNames.add(data['Marca']);
+            validRows.push(data);
+        }
+
+        // 5. Handle Brands
+        const existingBrands = await Brand.find({ brand_name: { $in: Array.from(uniqueBrandNames) } });
+        const existingBrandNames = new Set(existingBrands.map(b => b.brand_name));
+
+        const missingBrands = Array.from(uniqueBrandNames)
+            .filter(name => !existingBrandNames.has(name))
+            .map(name => ({ brand_name: name }));
+
+        if (missingBrands.length > 0) {
+            await Brand.insertMany(missingBrands);
+        }
+
+        // 6. Handle Products & Backups
+        const existingProducts = await Product.find({ product_code: { $in: Array.from(productCodesInFile) } });
+        const existingProductMap = new Map(existingProducts.map(p => [p.product_code, p]));
+
+        const productBulkOps = [];
+        const backupDocs = [];
+
+        for (const row of validRows) {
+            const productCode = row['Código do Produto'];
+            const description = row['Nome do Produto'];
+            const basePrice = row['Preço de Tabela'];
+            const brandName = row['Marca'];
+            const imageUrl = row['Link de Imagem'];
+
+            const existingProduct = existingProductMap.get(productCode);
+
+            if (existingProduct) {
+                // Update
+                productBulkOps.push({
+                    updateOne: {
+                        filter: { product_code: productCode },
+                        update: {
+                            $set: {
+                                description,
+                                base_price: basePrice,
+                                brand_name: brandName,
+                                ...(imageUrl && { imageurl: imageUrl })
+                            }
+                        }
+                    }
+                });
+
+                backupDocs.push({
+                    importId,
+                    productId: existingProduct._id,
+                    action: 'updated',
+                    snapshotBefore: existingProduct.toObject(),
+                });
+                updatedCount++;
+            } else {
+                // Insert
+                const newProductId = new (importDoc.db.model('Product')).base.Types.ObjectId();
+                productBulkOps.push({
+                    insertOne: {
+                        document: {
+                            _id: newProductId,
+                            product_code: productCode,
+                            description,
+                            base_price: basePrice,
+                            brand_name: brandName,
+                            imageurl: imageUrl,
+                        }
+                    }
+                });
+
+                backupDocs.push({
+                    importId,
+                    productId: newProductId,
+                    action: 'created',
+                    snapshotBefore: null,
+                });
+                createdCount++;
+            }
+        }
+
+        if (productBulkOps.length > 0) {
+            await Product.bulkWrite(productBulkOps as any);
+        }
+
+        if (backupDocs.length > 0) {
+            await ImportBackup.insertMany(backupDocs);
+        }
+
+        // 7. Finish Import
+        importDoc.status = 'done';
+        importDoc.summary = {
+            total: rawJson.length,
+            created: createdCount,
+            updated: updatedCount,
+            failed: failedCount,
+            errors,
+        };
+        await importDoc.save();
+
+        logger.info(`Import ${importId} processing completed.`);
+    } catch (error: any) {
+        logger.error(`Error processing import ${importId}:`, error);
+        await Import.findByIdAndUpdate(importId, {
+            status: 'failed',
+            summary: {
+                total: 0, created: 0, updated: 0, failed: 1,
+                errors: [{ reason: error.message || 'Erro catastrófico no processamento' }]
+            }
+        });
     }
 };
 
 export const uploadImport = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { brandId } = UploadImportSchema.parse(req.body);
         // The file is handled by multer in the route and available in req.file
-        // But for this initial version we don't parse it.
-
-        if (!brandId) {
-            res.status(400).json(createErrorResponse('VALIDATION_ERROR', 'Brand ID é obrigatório.'));
-            return;
-        }
 
         const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
 
@@ -52,7 +241,6 @@ export const uploadImport = async (req: Request, res: Response): Promise<void> =
         const newImport = new Import({
             filename: req.file?.originalname || 'MockFile.csv',
             fileType: req.file?.mimetype?.includes('csv') ? 'csv' : 'xlsx', // Simplified logic
-            brandId,
             status: 'processing',
             createdBy: req.firebaseUser?.uid, // Added by auth middleware
         });
@@ -60,7 +248,12 @@ export const uploadImport = async (req: Request, res: Response): Promise<void> =
         await newImport.save();
 
         // Start processing asynchronously
-        simulateProcessing(newImport._id.toString());
+        if (req.file?.buffer) {
+            processImport(newImport._id.toString(), req.file.buffer);
+        } else {
+            // Buffer missing means something is wrong with Multer memoryStorage configuration
+            throw new Error('Upload fail: Empty file buffer');
+        }
 
         res.status(201).json(createSuccessResponse(newImport));
     } catch (error: any) {
@@ -78,7 +271,6 @@ export const getImports = async (req: Request, res: Response): Promise<void> => 
 
         const [imports, total] = await Promise.all([
             Import.find(query)
-                .populate('brandId', 'brand_name') // Fetch brand name
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit),
@@ -102,7 +294,7 @@ export const getImports = async (req: Request, res: Response): Promise<void> => 
 export const getImportById = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
-        const importDoc = await Import.findById(id).populate('brandId', 'brand_name');
+        const importDoc = await Import.findById(id);
 
         if (!importDoc) {
             res.status(404).json(createErrorResponse('NOT_FOUND', 'Importação não encontrada.'));
@@ -159,11 +351,10 @@ export const deleteImport = async (req: Request, res: Response): Promise<void> =
                         restoredCount++;
                     }
                 }
-                
+
                 backupBulkOps.push({
-                    updateOne: {
-                        filter: { _id: backup._id },
-                        update: { $set: { restoredAt: new Date() } }
+                    deleteOne: {
+                        filter: { _id: backup._id }
                     }
                 });
             }

@@ -168,12 +168,48 @@ export class ProductService {
     }
 
     /**
-     * Update a product's editable fields by MongoDB ID
+     * Update a product's editable fields and optionally its image by MongoDB ID
      */
     static async updateProduct(
         productId: string,
-        updates: Partial<Pick<IProduct, 'description' | 'brand_name' | 'base_price'>>
+        updates: Record<string, any>,
+        imageBuffer?: Buffer
     ): Promise<IProduct> {
+        if (imageBuffer) {
+            const existingProduct = await Product.findById(productId);
+            if (!existingProduct) {
+                throw new Error('Produto não encontrado');
+            }
+
+            if (existingProduct.cloudinaryId) {
+                try {
+                    let publicId = existingProduct.cloudinaryId;
+                    if (publicId.startsWith('product/')) {
+                        publicId = publicId.replace('product/', '');
+                    } else if (publicId.startsWith('products/')) {
+                        publicId = publicId.replace('products/', '');
+                    }
+                    await cloudinary.uploader.destroy(publicId);
+                    logger.info(`Deleted old Cloudinary image: ${publicId}`);
+                } catch (error) {
+                    logger.error(`Failed to delete old Cloudinary image: ${error}`);
+                }
+            }
+
+            const result = await new Promise<any>((resolve, reject) => {
+                const uploadStream = cloudinary.uploader.upload_stream(
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                );
+                uploadStream.end(imageBuffer);
+            });
+
+            updates.imageurl = result.secure_url;
+            updates.cloudinaryId = result.public_id;
+        }
+
         const product = await Product.findByIdAndUpdate(
             productId,
             { $set: updates },

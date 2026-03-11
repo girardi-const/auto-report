@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { useProducts } from '../../hooks/useProducts';
 import { useBrands } from '../../hooks/useBrands';
 import { CatalogProduct, EditModalProps } from '../../types';
+import { ImageUpload } from '@/components/ImageUpload';
 import {
     Search,
     RefreshCcw,
@@ -75,6 +76,7 @@ function EditProductModal({ product, onClose, onSaved, getIdToken }: EditModalPr
     const [basePrice, setBasePrice] = useState(
         product.base_price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     );
+    const [image, setImage] = useState<File | null>(null);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
@@ -87,17 +89,20 @@ function EditProductModal({ product, onClose, onSaved, getIdToken }: EditModalPr
             const token = await getIdToken();
             const formattedPrice = parseFloat(basePrice.replace(/\./g, '').replace(',', '.'));
 
+            const formData = new FormData();
+            formData.append('description', description.toUpperCase());
+            formData.append('brand_name', brandName.toUpperCase());
+            formData.append('base_price', formattedPrice.toString());
+            if (image) {
+                formData.append('image', image);
+            }
+
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${product._id}`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({
-                    description: description.toUpperCase(),
-                    brand_name: brandName.toUpperCase(),
-                    base_price: formattedPrice,
-                }),
+                body: formData,
             });
 
             if (!res.ok) {
@@ -129,6 +134,11 @@ function EditProductModal({ product, onClose, onSaved, getIdToken }: EditModalPr
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-5">
+                    {/* Image */}
+                    <div className="flex flex-col gap-1.5 w-full">
+                        <ImageUpload image={image} previewUrl={product.imageurl} onImageChange={setImage} />
+                    </div>
+
                     {/* Name */}
                     <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Nome / Descrição</label>

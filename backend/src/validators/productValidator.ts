@@ -25,7 +25,7 @@ export type CreateProductInput = z.infer<typeof CreateProductSchema>;
 export const UpdateProductSchema = z.object({
     description: z.string().trim().optional(),
     brand_name: z.string().trim().optional(),
-    base_price: z.number().nonnegative('Preço base não pode ser negativo').optional(),
+    base_price: z.coerce.number().nonnegative('Preço base não pode ser negativo').optional(),
 });
 
 export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;

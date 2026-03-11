@@ -114,7 +114,7 @@ export const updateProduct = async (
     try {
         const parsedBody = UpdateProductSchema.parse(req.body);
 
-        const product = await ProductService.updateProduct(req.params.id, parsedBody);
+        const product = await ProductService.updateProduct(req.params.id, parsedBody, req.file?.buffer);
         res.json(createSuccessResponse(product));
     } catch (error: any) {
         if (error.message === 'Produto não encontrado') {

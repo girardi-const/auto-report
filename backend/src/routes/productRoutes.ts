@@ -28,7 +28,7 @@ router.get('/', listProducts);
 router.get('/:code', getProductByCode);
 router.post('/', requireAdmin, createProduct);
 router.post('/upload', requireAdmin, upload.single('image'), createProductWithImage);
-router.put('/:id', requireAdmin, updateProduct);
+router.put('/:id', requireAdmin, upload.single('image'), updateProduct);
 router.delete('/:id', requireAdmin, deleteProduct);
 
 export default router;

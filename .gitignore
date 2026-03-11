@@ -13,6 +13,7 @@ plans/
 
 # Ignore all .md files except README.md
 .xlsx
+.csv
 *.md
 !README.md
 **/README.md

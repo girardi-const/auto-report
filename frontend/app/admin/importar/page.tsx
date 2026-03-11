@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useImports, ImportDoc } from '@/hooks/useImports';
 import { toast } from 'sonner';
-import { Loader2, UploadCloud, FileText, Trash2, AlertTriangle, ExternalLink, Activity, Clock } from 'lucide-react';
+import { Loader2, UploadCloud, FileText, Trash2, AlertTriangle, ExternalLink, Activity, Clock, Info, X, Copy, CheckCheck } from 'lucide-react';
 import Link from 'next/link';
 import UnderCon from '@/components/UnderCon';
 
@@ -41,6 +41,33 @@ export default function ImportPage() {
     const [deleteModalImport, setDeleteModalImport] = useState<ImportDoc | null>(null);
     const [deleteMode, setDeleteMode] = useState<'full' | 'file-only'>('file-only');
     const [isDeleting, setIsDeleting] = useState(false);
+
+    // Format Info state
+    const [showFormatInfo, setShowFormatInfo] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const FORMAT_PROMPT = `Gere uma planilha Excel (.xlsx) com os seguintes campos obrigatórios e opcionais:
+
+Colunas (use exatamente estes nomes de cabeçalho):
+- Código do Produto   [OBRIGATÓRIO] — Código único do produto (ex: ABC-123)
+- Nome do Produto     [OBRIGATÓRIO] — Nome/descrição do produto
+- Preço de Tabela     [OBRIGATÓRIO] — Preço numérico positivo (ex: 1240,47 ou 1240.47)
+- Marca               [OBRIGATÓRIO] — Nome da marca do produto
+- Link de Imagem      [OPCIONAL]    — URL de imagem do produto
+
+Regras:
+- Cada linha representa um produto.
+- O Código do Produto deve ser único na planilha.
+- Preços podem usar vírgula ou ponto como separador decimal.
+- Salve como .xlsx ou .csv (UTF-8).
+
+Gere um exemplo com pelo menos 3 produtos reais.`;
+
+    const handleCopyPrompt = () => {
+        navigator.clipboard.writeText(FORMAT_PROMPT);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     // Guard: Admin only
     useEffect(() => {
@@ -244,10 +271,116 @@ export default function ImportPage() {
 
                     {/* Import Form Section */}
                     <div className={`bg-white rounded-2xl shadow-lg border border-gray-100 p-8 ${pollingImportId ? 'opacity-50 pointer-events-none' : ''}`}>
-                        <h2 className="text-sm font-bold text-secondary uppercase tracking-widest mb-6 flex items-center gap-2">
-                            <Activity size={16} />
-                            Nova Importação
-                        </h2>
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-sm font-bold text-secondary uppercase tracking-widest flex items-center gap-2">
+                                <Activity size={16} />
+                                Nova Importação
+                            </h2>
+                            <button
+                                type="button"
+                                onClick={() => setShowFormatInfo(true)}
+                                className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-primary transition-colors group"
+                                title="Ver formato do arquivo"
+                            >
+                                <Info size={16} className="group-hover:scale-110 transition-transform" />
+                                <span className="hidden sm:inline">Formato do arquivo</span>
+                            </button>
+                        </div>
+
+                        {/* Format Info Modal */}
+                        {showFormatInfo && (
+                            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm" onClick={() => setShowFormatInfo(false)}>
+                                <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+                                        <div className="flex items-center gap-2 text-primary">
+                                            <div className="p-2 bg-red-50 rounded-xl">
+                                                <FileText size={18} />
+                                            </div>
+                                            <h3 className="text-base font-bold text-gray-800">Formato do Arquivo</h3>
+                                        </div>
+                                        <button onClick={() => setShowFormatInfo(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+
+                                    <div className="px-6 py-5 space-y-4">
+                                        <p className="text-xs text-gray-500">Aceita <strong>.xlsx</strong> ou <strong>.csv</strong>. A primeira linha deve conter os nomes das colunas abaixo:</p>
+
+                                        <div className="rounded-xl border border-gray-100 overflow-hidden">
+                                            <table className="w-full text-xs">
+                                                <thead className="bg-gray-50 text-gray-400 uppercase tracking-wider">
+                                                    <tr>
+                                                        <th className="px-4 py-2.5 text-left font-semibold">Coluna</th>
+                                                        <th className="px-4 py-2.5 text-left font-semibold">Tipo</th>
+                                                        <th className="px-4 py-2.5 text-left font-semibold">Detalhe</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-50">
+                                                    {[
+                                                        { col: 'Código do Produto', req: true, detail: 'Único por produto' },
+                                                        { col: 'Nome do Produto', req: true, detail: 'Descrição do item' },
+                                                        { col: 'Preço de Tabela', req: true, detail: 'Número positivo (ex: 1240,47)' },
+                                                        { col: 'Marca', req: true, detail: 'Nome da marca' },
+                                                        { col: 'Link de Imagem', req: false, detail: 'URL de imagem (opcional)' },
+                                                    ].map(({ col, req, detail }) => (
+                                                        <tr key={col} className="bg-white hover:bg-gray-50/60">
+                                                            <td className="px-4 py-2.5 font-mono font-semibold text-gray-700">{col}</td>
+                                                            <td className="px-4 py-2.5">
+                                                                {req
+                                                                    ? <span className="inline-block px-2 py-0.5 rounded-md bg-red-50 text-red-600 font-bold text-[10px] uppercase">Obrigatório</span>
+                                                                    : <span className="inline-block px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 font-bold text-[10px] uppercase">Opcional</span>
+                                                                }
+                                                            </td>
+                                                            <td className="px-4 py-2.5 text-gray-400">{detail}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div>
+                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Arquivos de exemplo</p>
+                                            <div className="flex gap-2">
+                                                <a
+                                                    href="/sample.csv"
+                                                    download="sample.csv"
+                                                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 hover:border-primary hover:bg-red-50/40 text-xs font-bold text-gray-600 hover:text-primary transition-all duration-150"
+                                                >
+                                                    <FileText size={14} />
+                                                    Exemplo CSV
+                                                </a>
+                                                <a
+                                                    href="/sample.xlsx"
+                                                    download="sample.xlsx"
+                                                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 hover:border-green-500 hover:bg-green-50/40 text-xs font-bold text-gray-600 hover:text-green-700 transition-all duration-150"
+                                                >
+                                                    <FileText size={14} />
+                                                    Exemplo Excel
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
+                                            <p className="text-xs font-semibold text-amber-800 mb-1">💡 Gere o arquivo com IA</p>
+                                            <p className="text-xs text-amber-700">
+                                                Copie o prompt abaixo e cole em um chat de IA (ChatGPT, Gemini, etc.) para gerar um arquivo de exemplo já formatado.
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            onClick={handleCopyPrompt}
+                                            className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all duration-200 ${copied
+                                                    ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
+                                                    : 'bg-primary text-white hover:bg-[#c91e25] shadow-lg shadow-primary/20'
+                                                }`}
+                                        >
+                                            {copied ? <CheckCheck size={16} /> : <Copy size={16} />}
+                                            {copied ? 'Prompt copiado!' : 'Copiar prompt para IA'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <form onSubmit={handleFormSubmit} className="space-y-6">
 
@@ -263,7 +396,7 @@ export default function ImportPage() {
                                 <input
                                     type="file"
                                     className="hidden"
-                                    accept=".csv, .xlsx, .pdf"
+                                    accept=".csv, .xlsx, "
                                     ref={fileInputRef}
                                     onChange={handleFileChange}
                                 />
@@ -279,7 +412,7 @@ export default function ImportPage() {
                                         <p className="text-sm font-medium text-gray-600">
                                             Arraste e solte o arquivo aqui, ou <span className="text-primary font-bold">clique para buscar</span>
                                         </p>
-                                        <p className="text-xs text-gray-400 mt-2">Suporta .csv, .xlsx, e .pdf</p>
+                                        <p className="text-xs text-gray-400 mt-2">Suporta .csv e .xlsx</p>
                                     </>
                                 )}
                             </div>

@@ -218,7 +218,7 @@ export default function ReportForm() {
                 <input
                     type="text"
                     value={reportTitle}
-                    onChange={(e) => setReportTitle(e.target.value)}
+                    onChange={(e) => setReportTitle(e.target.value.toUpperCase())}
                     placeholder={`Orçamento - ${clientInfo.name || 'Nome do Cliente'}`}
                     className="bg-transparent text-secondary font-semibold text-sm outline-none placeholder:text-gray-300 w-full"
                 />

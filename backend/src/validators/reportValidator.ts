@@ -26,15 +26,6 @@ const ReportSectionSchema = z.object({
 const ClientInfoSchema = z.object({
     name: z.string().optional().default(''),
     telefone: z.string().optional().default(''),
-    email: z.string().optional().default(''),
-    razaoSocial: z.string().optional().default(''),
-    cnpj: z.string().optional().default(''),
-    inscricaoEstadual: z.string().optional().default(''),
-    endereco: z.string().optional().default(''),
-    bairro: z.string().optional().default(''),
-    cep: z.string().optional().default(''),
-    cidade: z.string().optional().default(''),
-    uf: z.string().optional().default(''),
 });
 
 // ── Create ─────────────────────────────────────────────────────────────────

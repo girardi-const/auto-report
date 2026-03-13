@@ -14,7 +14,7 @@ export const GeneralInfo = ({ data, onChange }: { data: any, onChange: any }) =>
                     <input
                         type="text"
                         value={field.value}
-                        onChange={(e) => onChange[field.key](e.target.value)}
+                        onChange={(e) => onChange[field.key](e.target.value.toUpperCase())}
                         placeholder={field.placeholder}
                         className="border-b-2 border-gray-100 uppercase py-1 focus:border-red-500 outline-none transition-all text-sm"
                     />

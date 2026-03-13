@@ -3,15 +3,6 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IClientInfo {
     name: string;
     telefone: string;
-    email: string;
-    razaoSocial: string;
-    cnpj: string;
-    inscricaoEstadual: string;
-    endereco: string;
-    bairro: string;
-    cep: string;
-    cidade: string;
-    uf: string;
 }
 
 export interface IReport extends Document {
@@ -44,15 +35,6 @@ const ClientInfoSchema = new Schema<IClientInfo>(
     {
         name: { type: String, default: '' },
         telefone: { type: String, default: '' },
-        email: { type: String, default: '' },
-        razaoSocial: { type: String, default: '' },
-        cnpj: { type: String, default: '' },
-        inscricaoEstadual: { type: String, default: '' },
-        endereco: { type: String, default: '' },
-        bairro: { type: String, default: '' },
-        cep: { type: String, default: '' },
-        cidade: { type: String, default: '' },
-        uf: { type: String, default: '' },
     },
     { _id: false }
 );

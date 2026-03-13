@@ -15,15 +15,6 @@ export function useReportState() {
     const [clientInfo, setClientInfo] = useState<ClientInfo>({
         name: "",
         telefone: "",
-        email: "",
-        razaoSocial: "",
-        cnpj: "",
-        inscricaoEstadual: "",
-        endereco: "",
-        bairro: "",
-        cep: "",
-        cidade: "",
-        uf: "",
     });
 
     const updateClientInfo = (field: keyof ClientInfo, value: string) => {
@@ -34,15 +25,6 @@ export function useReportState() {
         setClientInfo({
             name: "",
             telefone: "",
-            email: "",
-            razaoSocial: "",
-            cnpj: "",
-            inscricaoEstadual: "",
-            endereco: "",
-            bairro: "",
-            cep: "",
-            cidade: "",
-            uf: "",
         });
     };
 

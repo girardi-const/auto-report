@@ -1,15 +1,6 @@
 export interface ClientInfo {
     name: string;
     telefone: string;
-    email: string;
-    razaoSocial: string;
-    cnpj: string;
-    inscricaoEstadual: string;
-    endereco: string;
-    bairro: string;
-    cep: string;
-    cidade: string;
-    uf: string;
 }
 
 export interface Product {

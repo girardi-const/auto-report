@@ -356,7 +356,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 {/* ── Top bar ────────────────────────────────────────── */}
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                     <Link
-                        href="/reports"
+                        href="/historico"
                         className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-primary transition-colors"
                     >
                         <ArrowLeft size={14} /> Histórico
@@ -424,7 +424,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                         <input
                             type="text"
                             value={reportTitle}
-                            onChange={(e) => setReportTitle(e.target.value)}
+                            onChange={(e) => setReportTitle(e.target.value.toUpperCase())}
                             className="bg-transparent text-secondary font-semibold text-sm outline-none w-full"
                         />
                     ) : (
@@ -444,11 +444,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                                 {report.especificador && <FieldDisplay label="Especificador" value={report.especificador} />}
                                 {report.consultor && <FieldDisplay label="Consultor" value={report.consultor} />}
                                 {report.client_info?.name && <FieldDisplay label="Cliente" value={report.client_info.name} />}
-                                {report.client_info?.razaoSocial && <FieldDisplay label="Razão Social" value={report.client_info.razaoSocial} />}
-                                {report.client_info?.cnpj && <FieldDisplay label="CNPJ" value={report.client_info.cnpj} />}
                                 {report.client_info?.telefone && <FieldDisplay label="Telefone" value={report.client_info.telefone} />}
-                                {report.client_info?.email && <FieldDisplay label="E-mail" value={report.client_info.email} />}
-                                {report.client_info?.cidade && <FieldDisplay label="Cidade/UF" value={`${report.client_info.cidade}${report.client_info.uf ? ` / ${report.client_info.uf}` : ''}`} />}
                             </div>
                         )}
 

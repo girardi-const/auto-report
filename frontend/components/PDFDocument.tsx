@@ -59,6 +59,14 @@ export const ReportPDFDocument: React.FC<PDFDocumentProps> = ({
                     {/* General Information */}
                     <View style={styles.clientInfo}>
                         <View style={styles.clientInfoRow}>
+                            <Text style={styles.clientInfoLabel}>Cliente :</Text>
+                            <Text style={styles.clientInfoValue}>{clientInfo.name}</Text>
+                        </View>
+                        <View style={styles.clientInfoRow}>
+                            <Text style={styles.clientInfoLabel}>Telefone :</Text>
+                            <Text style={styles.clientInfoValue}>{clientInfo.telefone}</Text>
+                        </View>
+                        <View style={styles.clientInfoRow}>
                             <Text style={styles.clientInfoLabel}>Especificador:</Text>
                             <Text style={styles.clientInfoValue}>{especificador}</Text>
                         </View>
@@ -66,92 +74,8 @@ export const ReportPDFDocument: React.FC<PDFDocumentProps> = ({
                             <Text style={styles.clientInfoLabel}>Consultor:</Text>
                             <Text style={styles.clientInfoValue}>{consultor}</Text>
                         </View>
+
                     </View>
-
-                    {/* Client Information */}
-                    <View style={{
-                        marginTop: 10,
-                        marginBottom: 10,
-                        padding: 10,
-                        backgroundColor: '#f9f9f9',
-                        borderRadius: 4,
-                        border: '1px solid #999999'
-                    }}>
-                        <Text style={{
-                            fontSize: 10,
-                            fontFamily: 'Helvetica-Bold',
-                            marginBottom: 8,
-                            textTransform: 'uppercase'
-                        }}>
-                            Informações do Cliente
-                        </Text>
-
-                        {/* Client Name and Contact */}
-                        <View style={{ flexDirection: 'row', marginBottom: 4 }}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.clientInfoLabel}>Nome:</Text>
-                                <Text style={styles.clientInfoValue}>{clientInfo.name || '-'}</Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.clientInfoLabel}>Telefone:</Text>
-                                <Text style={styles.clientInfoValue}>{clientInfo.telefone || '-'}</Text>
-                            </View>
-                        </View>
-
-                        {/* Email and Company */}
-                        <View style={{ flexDirection: 'row', marginBottom: 4 }}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.clientInfoLabel}>Email:</Text>
-                                <Text style={styles.clientInfoValue}>{clientInfo.email || '-'}</Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.clientInfoLabel}>Razão Social:</Text>
-                                <Text style={styles.clientInfoValue}>{clientInfo.razaoSocial || '-'}</Text>
-                            </View>
-                        </View>
-
-                        {/* CNPJ and State Registration */}
-                        <View style={{ flexDirection: 'row', marginBottom: 4 }}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.clientInfoLabel}>CNPJ:</Text>
-                                <Text style={styles.clientInfoValue}>{clientInfo.cnpj || '-'}</Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.clientInfoLabel}>Inscrição Estadual:</Text>
-                                <Text style={styles.clientInfoValue}>{clientInfo.inscricaoEstadual || '-'}</Text>
-                            </View>
-                        </View>
-
-                        {/* Address */}
-                        <View style={{ flexDirection: 'row', marginBottom: 4 }}>
-                            <View style={{ flex: 2 }}>
-                                <Text style={styles.clientInfoLabel}>Endereço:</Text>
-                                <Text style={styles.clientInfoValue}>{clientInfo.endereco || '-'}</Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.clientInfoLabel}>Bairro:</Text>
-                                <Text style={styles.clientInfoValue}>{clientInfo.bairro || '-'}</Text>
-                            </View>
-                        </View>
-
-                        {/* City, State, and CEP */}
-                        <View style={{ flexDirection: 'row' }}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.clientInfoLabel}>Cidade:</Text>
-                                <Text style={styles.clientInfoValue}>{clientInfo.cidade || '-'}</Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.clientInfoLabel}>UF:</Text>
-                                <Text style={styles.clientInfoValue}>{clientInfo.uf || '-'}</Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.clientInfoLabel}>CEP:</Text>
-                                <Text style={styles.clientInfoValue}>{clientInfo.cep || '-'}</Text>
-                            </View>
-                        </View>
-                    </View>
-
-
                     {/* Table Header */}
 
                 </View>
@@ -166,9 +90,9 @@ export const ReportPDFDocument: React.FC<PDFDocumentProps> = ({
                             <Text style={[styles.tableHeaderCell, { width: '40%', textAlign: 'left', paddingLeft: 8 }]}>
                                 {section.name.toUpperCase()}
                             </Text>
-                            <Text style={[styles.tableHeaderCell, { width: '16%' }]}>Imagem</Text>
                             <Text style={[styles.tableHeaderCell, { width: '16%' }]}>Valor Und</Text>
                             <Text style={[styles.tableHeaderCell, { width: '16%' }]}>Sub Total</Text>
+                            <Text style={[styles.tableHeaderCell, { width: '16%' }]}>Imagem</Text>
                         </View>
 
                         {/* Products */}
@@ -190,18 +114,18 @@ export const ReportPDFDocument: React.FC<PDFDocumentProps> = ({
                                             {product.discount > 0 ? ` | Desconto: ${product.discount}%` : ''}
                                         </Text>
                                     </View>
-                                    <View style={styles.productImage}>
-                                        <Image
-                                            src={product.image}
-                                            style={styles.productImageImg}
-                                        />
-                                    </View>
                                     <Text style={styles.productPrice}>
                                         {formatCurrency(priceWithProductDiscount)}
                                     </Text>
                                     <Text style={styles.productSubtotal}>
                                         {formatCurrency(subtotal)}
                                     </Text>
+                                    <View style={styles.productImage}>
+                                        <Image
+                                            src={product.image}
+                                            style={styles.productImageImg}
+                                        />
+                                    </View>
                                 </View>
                             );
                         })}

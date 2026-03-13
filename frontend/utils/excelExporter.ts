@@ -201,10 +201,6 @@ export async function generateExcel({
     r++;
     for (const [l1, v1, l2, v2] of [
         ['Nome', clientInfo.name || '-', 'Telefone', clientInfo.telefone || '-'],
-        ['E-mail', clientInfo.email || '-', 'Razão Social', clientInfo.razaoSocial || '-'],
-        ['CNPJ', clientInfo.cnpj || '-', 'Insc. Estadual', clientInfo.inscricaoEstadual || '-'],
-        ['Endereço', clientInfo.endereco || '-', 'Bairro', clientInfo.bairro || '-'],
-        ['Cidade', clientInfo.cidade || '-', 'UF / CEP', `${clientInfo.uf || '-'} / ${clientInfo.cep || '-'}`],
     ] as [string, string, string, string][]) {
         ws.getRow(r).height = 18;
         sc(ws.getCell(r, 1), { value: l1, bold: true, bg: C.lightBlue });
@@ -214,6 +210,7 @@ export async function generateExcel({
         r++;
     }
     spacer(ws, r); r++;
+
 
     // ── Column Headers ────────────────────────────────────────────────────────────
     ws.getRow(r).height = 22;

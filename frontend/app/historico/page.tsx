@@ -221,7 +221,7 @@ export default function ReportsPage() {
                     totalValue={totalValue}
                     subtotalBeforeCash={subtotalBeforeCash}
                     cashDiscount={cashDiscount}
-                    clientInfo={report.client_info ?? { name: '', telefone: '', email: '', razaoSocial: '', cnpj: '', inscricaoEstadual: '', endereco: '', bairro: '', cep: '', cidade: '', uf: '' }}
+                    clientInfo={report.client_info ?? { name: '', telefone: '' }}
                 />
             );
 
@@ -266,7 +266,7 @@ export default function ReportsPage() {
                 consultor: report.consultor ?? '',
                 sections,
                 cashDiscount: report.cash_discount ?? 0,
-                clientInfo: report.client_info ?? { name: '', telefone: '', email: '', razaoSocial: '', cnpj: '', inscricaoEstadual: '', endereco: '', bairro: '', cep: '', cidade: '', uf: '' },
+                clientInfo: report.client_info ?? { name: '', telefone: '' },
             });
         } catch (e) {
             console.error('Excel error:', e);

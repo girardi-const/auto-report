@@ -10,21 +10,111 @@ import { z } from 'zod';
 import xlsx from 'xlsx';
 import cloudinary from '../config/cloudinary';
 import { scrapeProductImage } from '../services/imageScraperService';
+import { registerImport, cancelImport as cancelImportSignal, unregisterImport } from '../services/importCancelRegistry';
 
-// Mock function to simulate processing delay
-const processImport = async (importId: string, fileBuffer: Buffer) => {
+/**
+ * Helper: delete Cloudinary images in batches
+ */
+const deleteCloudinaryImages = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const BATCH_SIZE = 10;
+    let deletedOk = 0;
+    for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+        const batch = ids.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(
+            batch.map(id => cloudinary.uploader.destroy(id).catch(() => { }))
+        );
+        deletedOk += results.filter(r => r.status === 'fulfilled').length;
+    }
+    logger.info(`[Import Cleanup] Deleted ${deletedOk}/${ids.length} Cloudinary images`);
+};
+
+/**
+ * Cleanup a cancelled import:
+ *   1. Delete Cloudinary images
+ *   2. Delete products created by this import (using backup records)
+ *   3. Delete ImportBackup records
+ *   4. Delete the Import document itself
+ */
+const cleanupCancelledImport = async (importId: string, cloudinaryIds: string[]) => {
+    logger.info(`[Import Cancel] Starting cleanup for import ${importId}...`);
+
+    // 1. Delete Cloudinary images uploaded during this import
+    await deleteCloudinaryImages(cloudinaryIds);
+
+    // 2. Find backups to know which products were created by this import
+    const backups = await ImportBackup.find({ importId }).catch(() => []);
+    if (backups && backups.length > 0) {
+        const createdProductIds = backups
+            .filter((b: any) => b.action === 'created')
+            .map((b: any) => b.productId);
+
+        // Delete products that were created by this import
+        if (createdProductIds.length > 0) {
+            await Product.deleteMany({ _id: { $in: createdProductIds } }).catch(() => { });
+            logger.info(`[Import Cancel] Deleted ${createdProductIds.length} products created by import`);
+        }
+
+        // Restore updated products to their snapshot
+        const updatedBackups = backups.filter((b: any) => b.action === 'updated' && b.snapshotBefore);
+        if (updatedBackups.length > 0) {
+            const restoreOps = updatedBackups.map((b: any) => ({
+                replaceOne: {
+                    filter: { _id: b.productId },
+                    replacement: b.snapshotBefore,
+                }
+            }));
+            await Product.bulkWrite(restoreOps as any).catch(() => { });
+            logger.info(`[Import Cancel] Restored ${updatedBackups.length} updated products`);
+        }
+
+        // 3. Delete backups
+        await ImportBackup.deleteMany({ importId }).catch(() => { });
+        logger.info(`[Import Cancel] Deleted ${backups.length} backup records`);
+    }
+
+    // 4. Delete the import document itself so it doesn't block future imports
+    await Import.findByIdAndDelete(importId).catch(() => { });
+    logger.info(`[Import Cancel] Import ${importId} fully cleaned up.`);
+};
+
+// ----- Types used in the 3-phase process -----
+
+/** Data collected in Phase 1 for each valid row */
+interface CollectedRow {
+    productCode: string;
+    description: string;
+    basePrice: number;
+    brandName: string;
+    /** Image URL from spreadsheet or scraped externally */
+    imageUrl: string;
+    /** Downloaded image buffer ready for Cloudinary upload (null if no image or from URL column) */
+    imageBuffer: Buffer | null;
+    /** Whether an existing product already has an image (skip upload) */
+    existingHasImage: boolean;
+    /** Whether this product already exists in DB */
+    isUpdate: boolean;
+}
+
+/**
+ * Process import in 3 sequential phases with cancellation support.
+ *
+ * Phase 1 — Validate spreadsheet + scrape/download image buffers (no Cloudinary yet)
+ * Phase 2 — Upload all collected image buffers to Cloudinary
+ * Phase 3 — Bulk write products & backups to MongoDB
+ */
+const processImport = async (importId: string, fileBuffer: Buffer, signal: AbortSignal) => {
+    const uploadedCloudinaryIds: string[] = [];
     try {
         const importDoc = await Import.findById(importId);
         if (!importDoc) return;
 
-        // 1. Convert Buffer to Workbook
+        // ===== PARSE SPREADSHEET =====
         const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-
-        // 2. Parse exactly as json (raw: false converts formatted numbers like '1127,7' directly to strings instead of math numbers)
         const rawJson: any[] = xlsx.utils.sheet_to_json(worksheet, { defval: '', raw: false });
-        // 3. Validation Schema
+
         const RowSchema = z.object({
             'Código do Produto': z.string().min(1, 'Código é obrigatório').trim(),
             'Nome do Produto': z.string().min(1, 'Nome é obrigatório').trim(),
@@ -42,28 +132,22 @@ const processImport = async (importId: string, fileBuffer: Buffer) => {
         const validRows: any[] = [];
         const uniqueBrandNames = new Set<string>();
 
-        // 4. Validate and deduplicate rows
+        // Validate and deduplicate rows
         for (const [index, row] of rawJson.entries()) {
-            const rowNumber = index + 2; // +1 for 0-index, +1 for header
-            // Normalize keys to handle trailing \n and case differences in Excel headers
+            const rowNumber = index + 2;
             const normalizedRow: any = {};
             for (const key of Object.keys(row)) {
                 normalizedRow[key.trim().toLowerCase()] = row[key];
             }
 
-            // Handle comma as decimal separator in prices (e.g. "1127,7" -> 1127.7, or "1.240,47" -> 1240.47)
             let rawPrice = normalizedRow['preço de tabela'] || normalizedRow['preco de tabela'] || normalizedRow['preço'] || normalizedRow['preco'] || normalizedRow['preã§o de tabela'];
             if (typeof rawPrice === 'string') {
                 rawPrice = rawPrice.trim();
-                // If the price string contains a comma, it indicates Brazilian formatting
                 if (rawPrice.includes(',')) {
-                    // remove thousands separators (if they exist) and replace comma with dot
                     rawPrice = rawPrice.replace(/\./g, '').replace(',', '.');
                 }
-                // If it doesn't contain a comma, assume it's already in standard math format (1240.47)
             }
 
-            // Map possible column variations (including garbled UTF-8 variations from CSVs like CÃ³digo)
             const cleanRow = {
                 'Código do Produto': String(normalizedRow['código do produto'] || normalizedRow['cã³digo do produto'] || normalizedRow['codigo do produto'] || normalizedRow['codigo'] || '').trim(),
                 'Nome do Produto': String(normalizedRow['nome do produto'] || normalizedRow['nome'] || '').trim(),
@@ -71,8 +155,6 @@ const processImport = async (importId: string, fileBuffer: Buffer) => {
                 'Marca': String(normalizedRow['marca'] || '').trim(),
                 'Link de Imagem': String(normalizedRow['link de imagem'] || normalizedRow['imagem'] || '').trim(),
             };
-
-            console.log(cleanRow)
 
             const parsed = RowSchema.safeParse(cleanRow);
             if (!parsed.success) {
@@ -84,7 +166,6 @@ const processImport = async (importId: string, fileBuffer: Buffer) => {
 
             const data = parsed.data;
 
-            // Optional image link URL validation if not empty
             if (data['Link de Imagem']) {
                 try {
                     new URL(data['Link de Imagem']);
@@ -95,7 +176,6 @@ const processImport = async (importId: string, fileBuffer: Buffer) => {
                 }
             }
 
-            // Check for duplicates in the spreadsheet
             if (productCodesInFile.has(data['Código do Produto'])) {
                 errors.push({ productCode: data['Código do Produto'], reason: `Linha ${rowNumber}: Código do produto duplicado na planilha` });
                 failedCount++;
@@ -107,22 +187,17 @@ const processImport = async (importId: string, fileBuffer: Buffer) => {
             validRows.push(data);
         }
 
-        // 5. Handle Brands
+        // Handle Brands
         const existingBrands = await Brand.find({ brand_name: { $in: Array.from(uniqueBrandNames) } });
         const existingBrandNames = new Set(existingBrands.map(b => b.brand_name));
-
         const missingBrands = Array.from(uniqueBrandNames)
             .filter(name => !existingBrandNames.has(name))
             .map(name => ({ brand_name: name }));
-
         if (missingBrands.length > 0) {
             await Brand.insertMany(missingBrands);
         }
 
-        // 6. Handle Products & Backups — with real-time progress tracking
         const totalRows = validRows.length;
-
-        // Initialise progress in DB: let the frontend know total rows
         await Import.findByIdAndUpdate(importId, {
             'progress.total': totalRows,
             'progress.processed': 0,
@@ -132,60 +207,29 @@ const processImport = async (importId: string, fileBuffer: Buffer) => {
         const existingProducts = await Product.find({ product_code: { $in: Array.from(productCodesInFile) } });
         const existingProductMap = new Map(existingProducts.map(p => [p.product_code, p]));
 
-        /**
-         * Upload an image buffer to Cloudinary and return { imageurl, cloudinaryId }.
-         * Returns null if upload fails (errors are logged, not thrown).
-         */
-        const uploadToCloudinary = async (buffer: Buffer): Promise<{ imageurl: string; cloudinaryId: string } | null> => {
-            try {
-                const result = await new Promise<any>((resolve, reject) => {
-                    const stream = cloudinary.uploader.upload_stream(
-                        {
-                            folder: 'teste',
-                            resource_type: 'image',
-                        },
-                        (error, result) => {
-                            if (error) reject(error);
-                            else resolve(result);
-                        }
-                    );
-                    stream.end(buffer);
-                });
-                return { imageurl: result.secure_url, cloudinaryId: result.public_id };
-            } catch (err: any) {
-                logger.warn(`[Import] Cloudinary upload failed: ${err.message}`);
-                return null;
-            }
-        };
+        // ================================================================
+        // PHASE 1 — Collect image URLs/buffers (scrape from web, no Cloudinary yet)
+        // ================================================================
+        logger.info(`[Import ${importId}] Phase 1: Collecting image URLs for ${totalRows} products...`);
 
-        const productBulkOps: any[] = [];
-        const backupDocs: any[] = [];
-
-        // --- Concurrency pool: process up to N rows simultaneously ---
-        const CONCURRENCY = 6;
-        let processedCount = 0;
+        const collectedRows: CollectedRow[] = [];
+        let phase1Processed = 0;
         let lastWrittenPercent = -1;
 
-        /**
-         * Throttled progress writer: writes to MongoDB only when the percent
-         * changes by ≥5 points (or on the very first row), to avoid flooding DB.
-         */
-        const writeProgress = async () => {
-            processedCount++;
-            const percent = Math.round((processedCount / totalRows) * 100);
-            if (percent >= lastWrittenPercent + 5 || processedCount === 1 || processedCount === totalRows) {
+        const writeProgress = async (processed: number, phaseMultiplier: number, phaseOffset: number) => {
+            // Phase 1 = 0-50%, Phase 2 = 50-90%, Phase 3 = 90-100%
+            const percent = Math.round(phaseOffset + (processed / totalRows) * phaseMultiplier);
+            if (percent >= lastWrittenPercent + 5 || processed === 1 || processed === totalRows) {
                 lastWrittenPercent = percent;
                 await Import.findByIdAndUpdate(importId, {
-                    'progress.processed': processedCount,
-                    'progress.percent': percent,
-                }).catch(() => { }); // fire-and-forget, never block the row
+                    'progress.processed': processed,
+                    'progress.percent': Math.min(percent, 99),
+                }).catch(() => { });
             }
         };
 
-        /**
-         * Simple semaphore to cap parallel work.
-         * Prevents hammering DuckDuckGo while still running much faster than serial.
-         */
+        // Semaphore for concurrent scraping
+        const CONCURRENCY = 6;
         const createSemaphore = (limit: number) => {
             let active = 0;
             const queue: (() => void)[] = [];
@@ -202,13 +246,8 @@ const processImport = async (importId: string, fileBuffer: Buffer) => {
         };
         const sem = createSemaphore(CONCURRENCY);
 
-        type RowResult = {
-            bulkOp: any;
-            backupDoc: any;
-            countType: 'created' | 'updated';
-        };
-
-        const processRow = async (row: any): Promise<RowResult> => {
+        const collectRow = async (row: any): Promise<CollectedRow> => {
+            if (signal.aborted) throw new Error('IMPORT_CANCELLED');
             await sem.acquire();
             try {
                 const productCode = row['Código do Produto'];
@@ -216,84 +255,146 @@ const processImport = async (importId: string, fileBuffer: Buffer) => {
                 const basePrice = row['Preço de Tabela'];
                 const brandName = row['Marca'];
                 let imageUrl: string = row['Link de Imagem'] || '';
-                let cloudinaryId: string | undefined;
+                let imageBuffer: Buffer | null = null;
 
                 const existingProduct = existingProductMap.get(productCode);
-
-                // --- Auto-scrape image if no link provided ---
                 const needsScrape = !imageUrl;
-                const existingHasNoImage = existingProduct && !existingProduct.imageurl;
+                const existingHasImage = !!(existingProduct && existingProduct.imageurl);
 
-                if (needsScrape && (!existingProduct || existingHasNoImage)) {
+                // Scrape image if no link provided and product doesn't already have one
+                if (needsScrape && (!existingProduct || !existingHasImage)) {
                     logger.info(`[Import] No image for "${productCode}", attempting scrape...`);
-                    const scraped = await scrapeProductImage(description, brandName);
+                    const scraped = await scrapeProductImage(description, productCode, brandName);
                     if (scraped) {
-                        const uploaded = await uploadToCloudinary(scraped.buffer);
-                        if (uploaded) {
-                            imageUrl = uploaded.imageurl;
-                            cloudinaryId = uploaded.cloudinaryId;
-                            logger.info(`[Import] Scraped + uploaded image for "${productCode}": ${imageUrl}`);
-                        }
+                        imageBuffer = scraped.buffer;
+                        logger.info(`[Import] Scraped image for "${productCode}" from ${scraped.sourceUrl}`);
                     }
                 }
 
-                if (existingProduct) {
-                    const imageUpdate: Record<string, string> = {};
-                    if (imageUrl) imageUpdate.imageurl = imageUrl;
-                    if (cloudinaryId) imageUpdate.cloudinaryId = cloudinaryId;
-
-                    return {
-                        bulkOp: {
-                            updateOne: {
-                                filter: { product_code: productCode },
-                                update: { $set: { description, base_price: basePrice, brand_name: brandName, ...imageUpdate } }
-                            }
-                        },
-                        backupDoc: { importId, productId: existingProduct._id, action: 'updated', snapshotBefore: existingProduct.toObject() },
-                        countType: 'updated',
-                    };
-                } else {
-                    const newProductId = new (importDoc.db.model('Product')).base.Types.ObjectId();
-                    return {
-                        bulkOp: {
-                            insertOne: {
-                                document: {
-                                    _id: newProductId,
-                                    product_code: productCode,
-                                    description,
-                                    base_price: basePrice,
-                                    brand_name: brandName,
-                                    imageurl: imageUrl,
-                                    ...(cloudinaryId && { cloudinaryId }),
-                                }
-                            }
-                        },
-                        backupDoc: { importId, productId: newProductId, action: 'created', snapshotBefore: null },
-                        countType: 'created',
-                    };
-                }
+                return {
+                    productCode,
+                    description,
+                    basePrice,
+                    brandName,
+                    imageUrl,
+                    imageBuffer,
+                    existingHasImage,
+                    isUpdate: !!existingProduct,
+                };
             } finally {
                 sem.release();
             }
         };
 
-        // Run all rows in parallel (capped by the semaphore)
-        const rowResults = await Promise.allSettled(
-            validRows.map(row => processRow(row).then(async result => {
-                await writeProgress();
+        // Run Phase 1 concurrently (capped by semaphore)
+        const phase1Results = await Promise.allSettled(
+            validRows.map(row => collectRow(row).then(async result => {
+                phase1Processed++;
+                await writeProgress(phase1Processed, 50, 0); // 0-50%
                 return result;
             }))
         );
 
-        for (const result of rowResults) {
+        // Check cancel after Phase 1
+        if (signal.aborted) throw new Error('IMPORT_CANCELLED');
+
+        for (const result of phase1Results) {
             if (result.status === 'fulfilled') {
-                productBulkOps.push(result.value.bulkOp);
-                backupDocs.push(result.value.backupDoc);
-                if (result.value.countType === 'created') createdCount++;
-                else updatedCount++;
+                collectedRows.push(result.value);
             } else {
-                logger.error(`[Import] Unexpected row processing error: ${result.reason}`);
+                if (result.reason?.message === 'IMPORT_CANCELLED') throw new Error('IMPORT_CANCELLED');
+                logger.error(`[Import] Phase 1 row error: ${result.reason}`);
                 failedCount++;
+            }
+        }
+
+        logger.info(`[Import ${importId}] Phase 1 complete: ${collectedRows.length} rows collected, ${failedCount} failed`);
+
+        // ================================================================
+        // PHASE 2 — Upload collected image buffers to Cloudinary
+        // ================================================================
+        const rowsNeedingUpload = collectedRows.filter(r => r.imageBuffer !== null);
+        logger.info(`[Import ${importId}] Phase 2: Uploading ${rowsNeedingUpload.length} images to Cloudinary...`);
+
+        let phase2Processed = 0;
+        lastWrittenPercent = -1;
+
+        for (const row of collectedRows) {
+            if (signal.aborted) throw new Error('IMPORT_CANCELLED');
+
+            if (row.imageBuffer) {
+                try {
+                    const result = await new Promise<any>((resolve, reject) => {
+                        const stream = cloudinary.uploader.upload_stream(
+                            { folder: row.brandName, resource_type: 'image' },
+                            (error, result) => {
+                                if (error) reject(error);
+                                else resolve(result);
+                            }
+                        );
+                        stream.end(row.imageBuffer);
+                    });
+                    uploadedCloudinaryIds.push(result.public_id);
+                    row.imageUrl = result.secure_url;
+                    // Store the cloudinaryId on the row for later use in Phase 3
+                    (row as any).cloudinaryId = result.public_id;
+                    logger.info(`[Import] Uploaded image for "${row.productCode}": ${result.secure_url}`);
+                } catch (err: any) {
+                    logger.warn(`[Import] Cloudinary upload failed for "${row.productCode}": ${err.message}`);
+                }
+            }
+
+            phase2Processed++;
+            await writeProgress(phase2Processed, 40, 50); // 50-90%
+        }
+
+        // Check cancel after Phase 2
+        if (signal.aborted) throw new Error('IMPORT_CANCELLED');
+
+        logger.info(`[Import ${importId}] Phase 2 complete: ${uploadedCloudinaryIds.length} images uploaded`);
+
+        // ================================================================
+        // PHASE 3 — Save products & backups to MongoDB
+        // ================================================================
+        logger.info(`[Import ${importId}] Phase 3: Saving ${collectedRows.length} products to database...`);
+
+        const productBulkOps: any[] = [];
+        const backupDocs: any[] = [];
+
+        for (const row of collectedRows) {
+            const existingProduct = existingProductMap.get(row.productCode);
+            const cloudinaryId = (row as any).cloudinaryId as string | undefined;
+
+            if (existingProduct) {
+                const imageUpdate: Record<string, string> = {};
+                if (row.imageUrl) imageUpdate.imageurl = row.imageUrl;
+                if (cloudinaryId) imageUpdate.cloudinaryId = cloudinaryId;
+
+                productBulkOps.push({
+                    updateOne: {
+                        filter: { product_code: row.productCode },
+                        update: { $set: { description: row.description, base_price: row.basePrice, brand_name: row.brandName, ...imageUpdate } }
+                    }
+                });
+                backupDocs.push({ importId, productId: existingProduct._id, action: 'updated', snapshotBefore: existingProduct.toObject() });
+                updatedCount++;
+            } else {
+                const newProductId = new (importDoc.db.model('Product')).base.Types.ObjectId();
+                productBulkOps.push({
+                    insertOne: {
+                        document: {
+                            _id: newProductId,
+                            product_code: row.productCode,
+                            description: row.description,
+                            base_price: row.basePrice,
+                            brand_name: row.brandName,
+                            imageurl: row.imageUrl,
+                            ...(cloudinaryId && { cloudinaryId }),
+                        }
+                    }
+                });
+                backupDocs.push({ importId, productId: newProductId, action: 'created', snapshotBefore: null });
+                createdCount++;
             }
         }
 
@@ -305,7 +406,7 @@ const processImport = async (importId: string, fileBuffer: Buffer) => {
             await ImportBackup.insertMany(backupDocs);
         }
 
-        // 7. Finish Import — mark 100%
+        // Finish Import — mark 100%
         importDoc.status = 'done';
         importDoc.progress = { processed: totalRows, total: totalRows, percent: 100 };
         importDoc.summary = {
@@ -317,9 +418,18 @@ const processImport = async (importId: string, fileBuffer: Buffer) => {
         };
         await importDoc.save();
 
-        logger.info(`Import ${importId} processing completed.`);
+        unregisterImport(importId);
+        logger.info(`[Import ${importId}] Processing completed: ${createdCount} created, ${updatedCount} updated, ${failedCount} failed.`);
     } catch (error: any) {
+        if (error.message === 'IMPORT_CANCELLED' || signal.aborted) {
+            logger.info(`[Import] Import ${importId} was cancelled. Running cleanup...`);
+            await cleanupCancelledImport(importId, uploadedCloudinaryIds);
+            unregisterImport(importId);
+            return;
+        }
+
         logger.error(`Error processing import ${importId}:`, error);
+        unregisterImport(importId);
         await Import.findByIdAndUpdate(importId, {
             status: 'failed',
             summary: {
@@ -363,9 +473,10 @@ export const uploadImport = async (req: Request, res: Response): Promise<void> =
 
         await newImport.save();
 
-        // Start processing asynchronously
+        // Start processing asynchronously with cancellation support
         if (req.file?.buffer) {
-            processImport(newImport._id.toString(), req.file.buffer);
+            const ac = registerImport(newImport._id.toString());
+            processImport(newImport._id.toString(), req.file.buffer, ac.signal);
         } else {
             // Buffer missing means something is wrong with Multer memoryStorage configuration
             throw new Error('Upload fail: Empty file buffer');
@@ -447,17 +558,36 @@ export const deleteImport = async (req: Request, res: Response): Promise<void> =
             // Full rollback
             const backups = await ImportBackup.find({ importId: id, restoredAt: null });
 
+            // Fetch current products so we can read their cloudinaryId before rollback
+            const productIds = backups.map(b => b.productId);
+            const currentProducts = await Product.find({ _id: { $in: productIds } });
+            const currentProductMap = new Map(currentProducts.map(p => [p._id.toString(), p]));
+
             const productBulkOps = [];
             const backupBulkOps = [];
+            const cloudinaryIdsToDelete: string[] = [];
             let restoredCount = 0;
             let deletedCount = 0;
 
             for (const backup of backups) {
+                const currentProduct = currentProductMap.get(backup.productId.toString());
+
                 if (backup.action === 'created') {
+                    // Product was created by this import — delete it and its Cloudinary image
+                    if (currentProduct?.cloudinaryId) {
+                        cloudinaryIdsToDelete.push(currentProduct.cloudinaryId);
+                    }
                     productBulkOps.push({ deleteOne: { filter: { _id: backup.productId } } });
                     deletedCount++;
                 } else if (backup.action === 'updated') {
                     if (backup.snapshotBefore) {
+                        // If the import changed the image, delete the current (import-added) one
+                        const snapshotCloudinaryId = backup.snapshotBefore.cloudinaryId || null;
+                        const currentCloudinaryId = currentProduct?.cloudinaryId || null;
+                        if (currentCloudinaryId && currentCloudinaryId !== snapshotCloudinaryId) {
+                            cloudinaryIdsToDelete.push(currentCloudinaryId);
+                        }
+
                         productBulkOps.push({
                             replaceOne: {
                                 filter: { _id: backup.productId },
@@ -475,6 +605,33 @@ export const deleteImport = async (req: Request, res: Response): Promise<void> =
                 });
             }
 
+            // Delete orphaned Cloudinary images in batches to avoid overwhelming the API
+            if (cloudinaryIdsToDelete.length > 0) {
+                const BATCH_SIZE = 10;
+                let cloudinaryDeletedOk = 0;
+                let cloudinaryDeletedFail = 0;
+
+                for (let i = 0; i < cloudinaryIdsToDelete.length; i += BATCH_SIZE) {
+                    const batch = cloudinaryIdsToDelete.slice(i, i + BATCH_SIZE);
+                    const results = await Promise.allSettled(
+                        batch.map(async (rawId) => {
+                            let publicId = rawId;
+                            if (publicId.startsWith('product/')) {
+                                publicId = publicId.replace('product/', '');
+                            } else if (publicId.startsWith('products/')) {
+                                publicId = publicId.replace('products/', '');
+                            }
+                            await cloudinary.uploader.destroy(publicId);
+                            logger.info(`[Import Rollback] Deleted Cloudinary image: ${publicId}`);
+                        })
+                    );
+                    cloudinaryDeletedOk += results.filter(r => r.status === 'fulfilled').length;
+                    cloudinaryDeletedFail += results.filter(r => r.status === 'rejected').length;
+                }
+
+                logger.info(`[Import Rollback] Cloudinary cleanup done: ${cloudinaryDeletedOk} deleted, ${cloudinaryDeletedFail} failed`);
+            }
+
             if (productBulkOps.length > 0) {
                 await Product.bulkWrite(productBulkOps as any);
             }
@@ -484,13 +641,13 @@ export const deleteImport = async (req: Request, res: Response): Promise<void> =
 
             importDoc.isDeleted = true;
             await importDoc.save();
-            // Optional: delete physical file
 
             res.status(200).json(
                 createSuccessResponse({
                     message: 'Rollback concluído. Registros revertidos.',
                     restored: restoredCount,
                     deleted: deletedCount,
+                    cloudinaryDeleted: cloudinaryIdsToDelete.length,
                 })
             );
         }
@@ -509,5 +666,38 @@ export const getImportBackups = async (req: Request, res: Response): Promise<voi
     } catch (error: any) {
         logger.error('Error fetching import backups:', error);
         res.status(500).json(createErrorResponse('SERVER_ERROR', 'Erro ao buscar backups.'));
+    }
+};
+
+export const cancelImportController = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+
+        const importDoc = await Import.findById(id);
+
+        // If the import doesn't exist, it was already cleaned up — treat as success
+        if (!importDoc) {
+            res.status(200).json(createSuccessResponse({ message: 'Importação já foi removida.' }));
+            return;
+        }
+
+        // If not processing, it already finished — treat as success
+        if (importDoc.status !== 'processing') {
+            res.status(200).json(createSuccessResponse({ message: 'Importação já finalizada.' }));
+            return;
+        }
+
+        // Try to signal the abort — if already removed from registry, it's already being cleaned up
+        const wasCancelled = cancelImportSignal(id);
+        if (!wasCancelled) {
+            res.status(200).json(createSuccessResponse({ message: 'Cancelamento já em andamento.' }));
+            return;
+        }
+
+        logger.info(`[Import] Cancel requested for import ${id}`);
+        res.status(200).json(createSuccessResponse({ message: 'Importação cancelada com sucesso. Limpeza em andamento.' }));
+    } catch (error: any) {
+        logger.error('Error cancelling import:', error);
+        res.status(500).json(createErrorResponse('SERVER_ERROR', 'Erro ao cancelar importação.'));
     }
 };

@@ -9,9 +9,10 @@ import { logger } from '../utils/logger';
 /**
  * Build a search query string from product description and brand.
  */
-function buildSearchQuery(description: string, brand: string): string {
+function buildSearchQuery(brand: string, productCode: string, description: string): string {
     const parts: string[] = [];
     if (brand) parts.push(brand.trim());
+    if (productCode) parts.push(productCode.trim());
     if (description) parts.push(description.trim());
     return parts.join(' ');
 }
@@ -123,9 +124,10 @@ export async function fetchImageBuffer(imageUrl: string): Promise<Buffer | null>
  */
 export async function scrapeProductImage(
     description: string,
+    productCode: string,
     brand: string
 ): Promise<{ buffer: Buffer; sourceUrl: string } | null> {
-    const query = buildSearchQuery(description, brand);
+    const query = buildSearchQuery(brand, productCode, description);
     if (!query) return null;
 
     logger.info(`[ImageScraper] Searching image for: "${query}"`);

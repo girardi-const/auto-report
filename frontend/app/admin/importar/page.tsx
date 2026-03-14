@@ -5,12 +5,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useImports, ImportDoc } from '@/hooks/useImports';
 import { toast } from 'sonner';
-import { Loader2, UploadCloud, FileText, Trash2, AlertTriangle, ExternalLink, Activity, Clock, Info, X, Copy, CheckCheck } from 'lucide-react';
+import { Loader2, UploadCloud, FileText, Trash2, AlertTriangle, ExternalLink, Activity, Clock, Info, X, Copy, CheckCheck, Ban } from 'lucide-react';
 import Link from 'next/link';
 import UnderCon from '@/components/UnderCon';
 
 export default function ImportPage() {
-    const { user, isAdmin, loading: authLoading } = useAuth();
+    const { user, isAdmin, loading: authLoading, getIdToken } = useAuth();
     const [underCon, setUnderCon] = useState(false);
     const router = useRouter();
 
@@ -21,7 +21,8 @@ export default function ImportPage() {
         fetchImports,
         uploadImport,
         getImportById,
-        deleteImport
+        deleteImport,
+        cancelImport
     } = useImports();
 
 
@@ -46,22 +47,31 @@ export default function ImportPage() {
     const [showFormatInfo, setShowFormatInfo] = useState(false);
     const [copied, setCopied] = useState(false);
 
-    const FORMAT_PROMPT = `Gere uma planilha Excel (.xlsx) com os seguintes campos obrigatórios e opcionais:
+    // Cancel Import state
+    const [confirmingCancel, setConfirmingCancel] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
 
+    // Cache the auth token in a ref so beforeunload can use it synchronously
+    const tokenRef = useRef<string | null>(null);
+    useEffect(() => {
+        if (pollingImportId) {
+            getIdToken().then(t => { tokenRef.current = t; }).catch(() => { });
+        }
+    }, [pollingImportId, getIdToken]);
+
+    const FORMAT_PROMPT = `Formate essa planilha Excel (.xlsx ou .csv) com os seguintes campos obrigatórios e opcionais, deixe apenas um marca como DOCOL, DECA e DOKA:
 Colunas (use exatamente estes nomes de cabeçalho):
 - Código do Produto   [OBRIGATÓRIO] — Código único do produto (ex: ABC-123)
 - Nome do Produto     [OBRIGATÓRIO] — Nome/descrição do produto
-- Preço de Tabela     [OBRIGATÓRIO] — Preço numérico positivo (ex: 1240,47 ou 1240.47)
+- Preço de Tabela     [OBRIGATÓRIO] — Preço numérico positivo (ex: 1240,47 ou 1240.47 não coloque moeda antes com R$, USD)
 - Marca               [OBRIGATÓRIO] — Nome da marca do produto
 - Link de Imagem      [OPCIONAL]    — URL de imagem do produto
-
 Regras:
 - Cada linha representa um produto.
 - O Código do Produto deve ser único na planilha.
 - Preços podem usar vírgula ou ponto como separador decimal.
 - Salve como .xlsx ou .csv (UTF-8).
-
-Gere um exemplo com pelo menos 3 produtos reais.`;
+`;
 
     const handleCopyPrompt = () => {
         navigator.clipboard.writeText(FORMAT_PROMPT);
@@ -83,43 +93,83 @@ Gere um exemplo com pelo menos 3 produtos reais.`;
         }
     }, [isAdmin, fetchImports]);
 
+    // Auto-cancel on tab close / browser unload
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            if (pollingImportId && tokenRef.current) {
+                const url = `${process.env.NEXT_PUBLIC_API_URL}/admin/imports/${pollingImportId}/cancel`;
+                fetch(url, {
+                    method: 'POST',
+                    keepalive: true,
+                    headers: {
+                        'Authorization': `Bearer ${tokenRef.current}`,
+                        'Content-Type': 'application/json',
+                    },
+                }).catch(() => { });
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [pollingImportId]);
+
+    // Auto-cancel on route change (component unmount while processing)
+    useEffect(() => {
+        return () => {
+            if (pollingImportId) {
+                cancelImport(pollingImportId).catch(() => { });
+            }
+        };
+    }, [pollingImportId, cancelImport]);
+
     // Polling Logic
     useEffect(() => {
         let interval: NodeJS.Timeout;
         if (pollingImportId) {
             interval = setInterval(async () => {
                 const updatedImport = await getImportById(pollingImportId);
-                if (updatedImport) {
-                    setPollingImport(updatedImport);
 
-                    // Compute time remaining from progress
-                    const pct = updatedImport.progress?.percent ?? 0;
-                    if (pct > 0 && pct < 100 && importStartTime.current) {
-                        const elapsed = (Date.now() - importStartTime.current) / 1000; // seconds
-                        const totalEstimated = elapsed / (pct / 100);
-                        const remaining = Math.max(0, totalEstimated - elapsed);
-                        if (remaining < 60) {
-                            setTimeRemaining(`${Math.ceil(remaining)}s`);
-                        } else {
-                            setTimeRemaining(`${Math.ceil(remaining / 60)}min`);
-                        }
+                // Import was deleted (cancelled and cleaned up) — stop polling
+                if (!updatedImport) {
+                    clearInterval(interval);
+                    setPollingImportId(null);
+                    setPollingImport(null);
+                    setTimeRemaining(null);
+                    importStartTime.current = null;
+                    setSubmitting(false);
+                    setConfirmingCancel(false);
+                    fetchImports();
+                    return;
+                }
+
+                setPollingImport(updatedImport);
+
+                // Compute time remaining from progress
+                const pct = updatedImport.progress?.percent ?? 0;
+                if (pct > 0 && pct < 100 && importStartTime.current) {
+                    const elapsed = (Date.now() - importStartTime.current) / 1000; // seconds
+                    const totalEstimated = elapsed / (pct / 100);
+                    const remaining = Math.max(0, totalEstimated - elapsed);
+                    if (remaining < 60) {
+                        setTimeRemaining(`${Math.ceil(remaining)}s`);
+                    } else {
+                        setTimeRemaining(`${Math.ceil(remaining / 60)}min`);
                     }
+                }
 
-                    if (updatedImport.status === 'done' || updatedImport.status === 'failed') {
-                        clearInterval(interval);
-                        setPollingImportId(null);
-                        setPollingImport(null);
-                        setTimeRemaining(null);
-                        importStartTime.current = null;
-                        setSubmitting(false);
+                if (updatedImport.status === 'done' || updatedImport.status === 'failed') {
+                    clearInterval(interval);
+                    setPollingImportId(null);
+                    setPollingImport(null);
+                    setTimeRemaining(null);
+                    importStartTime.current = null;
+                    setSubmitting(false);
 
-                        if (updatedImport.status === 'done') {
-                            toast.success(`Importação finalizada! ${updatedImport.summary.created} criados, ${updatedImport.summary.updated} atualizados.`);
-                        } else {
-                            toast.error('Ocorreu um erro ao processar o arquivo.');
-                        }
-                        fetchImports();
+                    if (updatedImport.status === 'done') {
+                        toast.success(`Importação finalizada! ${updatedImport.summary.created} criados, ${updatedImport.summary.updated} atualizados.`);
+                    } else {
+                        toast.error('Ocorreu um erro ao processar o arquivo.');
                     }
+                    fetchImports();
                 }
             }, 2000);
         }
@@ -174,6 +224,23 @@ Gere um exemplo com pelo menos 3 produtos reais.`;
             }
         } else {
             setSubmitting(false);
+        }
+    };
+
+    const handleCancelImport = async () => {
+        if (!pollingImportId) return;
+        setIsCancelling(true);
+        const ok = await cancelImport(pollingImportId);
+        if (ok) {
+            toast.success('Importação cancelada com sucesso. Recarregando...');
+            // Keep overlay visible while backend cleans up, then reload
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        } else {
+            toast.error('Erro ao cancelar a importação.');
+            setIsCancelling(false);
+            setConfirmingCancel(false);
         }
     };
 
@@ -235,7 +302,7 @@ Gere um exemplo com pelo menos 3 produtos reais.`;
                                 </div>
 
                                 <h2 className="text-xl font-bold text-gray-800 tracking-tight mb-1">Processando importação...</h2>
-                                <p className="text-gray-400 text-xs font-medium mb-6">Por favor, não feche ou saia desta página</p>
+                                <p className="text-gray-400 text-xs font-medium mb-6">Você pode cancelar a importação a qualquer momento</p>
 
                                 {/* Progress bar */}
                                 <div className="w-full max-w-sm">
@@ -264,6 +331,45 @@ Gere um exemplo com pelo menos 3 produtos reais.`;
                                             </span>
                                         )}
                                     </div>
+                                </div>
+
+                                {/* Cancel button */}
+                                <div className="mt-8 flex flex-col items-center">
+                                    {!confirmingCancel ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfirmingCancel(true)}
+                                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-500 hover:text-red-600 hover:border-red-300 hover:bg-red-50/50 transition-all duration-200"
+                                        >
+                                            <Ban size={14} />
+                                            Cancelar Importação
+                                        </button>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-3">
+                                            <p className="text-xs font-semibold text-red-600">
+                                                Tem certeza? Imagens já enviadas serão apagadas.
+                                            </p>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setConfirmingCancel(false)}
+                                                    disabled={isCancelling}
+                                                    className="px-4 py-2 rounded-lg border border-gray-200 text-xs font-bold text-gray-500 hover:bg-gray-50 transition-colors"
+                                                >
+                                                    Voltar
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleCancelImport}
+                                                    disabled={isCancelling}
+                                                    className="px-4 py-2 rounded-lg bg-red-500 text-white text-xs font-bold hover:bg-red-600 shadow-md shadow-red-500/20 transition-all disabled:opacity-50 flex items-center gap-2"
+                                                >
+                                                    {isCancelling ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+                                                    Confirmar Cancelamento
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -321,7 +427,7 @@ Gere um exemplo com pelo menos 3 produtos reais.`;
                                                         { col: 'Nome do Produto', req: true, detail: 'Descrição do item' },
                                                         { col: 'Preço de Tabela', req: true, detail: 'Número positivo (ex: 1240,47)' },
                                                         { col: 'Marca', req: true, detail: 'Nome da marca' },
-                                                        { col: 'Link de Imagem', req: false, detail: 'URL de imagem (opcional)' },
+                                                        { col: 'Link de Imagem', req: false, detail: 'URL da imagem (opcional). Caso não seja informada, imagens serão buscadas automaticamente. Verifique se estão corretas e atualize manualmente se necessário.' },
                                                     ].map(({ col, req, detail }) => (
                                                         <tr key={col} className="bg-white hover:bg-gray-50/60">
                                                             <td className="px-4 py-2.5 font-mono font-semibold text-gray-700">{col}</td>
@@ -370,8 +476,8 @@ Gere um exemplo com pelo menos 3 produtos reais.`;
                                         <button
                                             onClick={handleCopyPrompt}
                                             className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all duration-200 ${copied
-                                                    ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
-                                                    : 'bg-primary text-white hover:bg-[#c91e25] shadow-lg shadow-primary/20'
+                                                ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
+                                                : 'bg-primary text-white hover:bg-[#c91e25] shadow-lg shadow-primary/20'
                                                 }`}
                                         >
                                             {copied ? <CheckCheck size={16} /> : <Copy size={16} />}
@@ -515,7 +621,7 @@ Gere um exemplo com pelo menos 3 produtos reais.`;
                                                 <td className="px-6 py-4 whitespace-nowrap text-right">
                                                     <div className="flex items-center justify-end gap-2">
                                                         <Link
-                                                            href={`/admin/importar/${imp._id}/produtos`}
+                                                            href={`/admin/importar/${imp._id}`}
                                                             className="p-2 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
                                                             title="Ver produtos gerados/afetados"
                                                         >

@@ -26,7 +26,7 @@ export interface IImportSummary {
 export interface IImport extends Document {
     filename: string;
     fileType: 'csv' | 'xlsx' | 'pdf';
-    status: 'processing' | 'done' | 'failed';
+    status: 'processing' | 'done' | 'failed' | 'cancelled';
     createdBy: string;
     summary: IImportSummary;
     progress: IImportProgress;
@@ -69,7 +69,7 @@ const ImportSchema = new Schema<IImport>(
         status: {
             type: String,
             required: true,
-            enum: ['processing', 'done', 'failed'],
+            enum: ['processing', 'done', 'failed', 'cancelled'],
             default: 'processing',
             index: true,
         },

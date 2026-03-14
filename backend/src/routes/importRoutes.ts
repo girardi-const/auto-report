@@ -6,7 +6,8 @@ import {
     getImports,
     getImportById,
     deleteImport,
-    getImportBackups
+    getImportBackups,
+    cancelImportController
 } from '../controllers/importController';
 
 const router = Router();
@@ -16,7 +17,10 @@ const router = Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// All /api/admin/imports routes require authentication and admin privileges
+// POST /:id/cancel — no auth required (allows cancel on tab close via beforeunload)
+router.post('/:id/cancel', cancelImportController);
+
+// All other /api/admin/imports routes require authentication and admin privileges
 router.use(verifyToken);
 router.use(requireAdmin);
 
@@ -36,3 +40,4 @@ router.delete('/:id', deleteImport);
 router.get('/:id/backups', getImportBackups);
 
 export default router;
+

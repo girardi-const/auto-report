@@ -28,7 +28,7 @@ export interface ImportDoc {
     _id: string;
     filename: string;
     fileType: 'csv' | 'xlsx' | 'pdf';
-    status: 'processing' | 'done' | 'failed';
+    status: 'processing' | 'done' | 'failed' | 'cancelled';
     createdBy: string;
     summary: ImportSummary;
     progress: ImportProgress;
@@ -178,6 +178,26 @@ export function useImports() {
         [getIdToken]
     );
 
+    const cancelImport = useCallback(
+        async (id: string): Promise<boolean> => {
+            try {
+                const res = await fetch(`${API}/admin/imports/${id}/cancel`, {
+                    method: 'POST',
+                    headers: await getHeaders(),
+                });
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error?.message || 'Erro ao cancelar importação');
+                }
+                return true;
+            } catch (err: unknown) {
+                setError(err instanceof Error ? err.message : 'Erro desconhecido');
+                return false;
+            }
+        },
+        [getIdToken]
+    );
+
     return {
         importsData,
         loading,
@@ -186,6 +206,7 @@ export function useImports() {
         uploadImport,
         getImportById,
         deleteImport,
+        cancelImport,
         getImportBackups,
     };
 }

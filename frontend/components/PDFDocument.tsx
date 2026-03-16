@@ -122,7 +122,7 @@ export const ReportPDFDocument: React.FC<PDFDocumentProps> = ({
                                     </Text>
                                     <View style={styles.productImage}>
                                         <Image
-                                            src={product.image}
+                                            src={product.image ? product.image.replace(/https?:\/\/arquivos\.mercos\.com/, typeof window !== 'undefined' ? `${window.location.origin}/api/mercos-images` : '/api/mercos-images') : ''}
                                             style={styles.productImageImg}
                                         />
                                     </View>

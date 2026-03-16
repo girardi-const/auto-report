@@ -213,7 +213,7 @@ export class ProductService {
         const product = await Product.findByIdAndUpdate(
             productId,
             { $set: updates },
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         );
 
         if (!product) {

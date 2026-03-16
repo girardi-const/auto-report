@@ -229,7 +229,7 @@ const processImport = async (importId: string, fileBuffer: Buffer, signal: Abort
         };
 
         // Semaphore for concurrent scraping
-        const CONCURRENCY = 6;
+        const CONCURRENCY = 4;
         const createSemaphore = (limit: number) => {
             let active = 0;
             const queue: (() => void)[] = [];

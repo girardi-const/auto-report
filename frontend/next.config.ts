@@ -10,9 +10,18 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "arquivos.mercos.com"
+        hostname: "arquivos.mercos.com",
+        pathname: "/**"
       }
     ],
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/api/mercos-images/:path*',
+        destination: 'https://arquivos.mercos.com/:path*',
+      },
+    ];
   },
 };
 

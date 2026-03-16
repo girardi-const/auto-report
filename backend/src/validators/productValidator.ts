@@ -17,6 +17,7 @@ export const CreateProductSchema = z.object({
     description: z.string().optional().default(''),
     brand_name: z.string().min(1, 'Marca é obrigatória').trim(),
     base_price: z.number().nonnegative('Preço base não pode ser negativo'),
+    imageurl: z.string().url('URL de imagem inválida').optional().nullable(),
 });
 
 export type CreateProductInput = z.infer<typeof CreateProductSchema>;
@@ -26,6 +27,7 @@ export const UpdateProductSchema = z.object({
     description: z.string().trim().optional(),
     brand_name: z.string().trim().optional(),
     base_price: z.coerce.number().nonnegative('Preço base não pode ser negativo').optional(),
+    imageurl: z.string().url('URL de imagem inválida').optional().nullable(),
 });
 
 export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;

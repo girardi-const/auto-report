@@ -34,7 +34,7 @@ app.use(compression());
 
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    limit: 500, // 500 req por IP por janela — seguro para 4+ usuários internos atrás do mesmo IP
+    limit: 20000, // 20000 req por IP por janela (aumentado para permitir integrações/bulk uploads)
     keyGenerator: (req: Request) => {
         // Use authorization token if present to identify specific users, otherwise fallback to IP
         return req.headers.authorization || req.ip || 'unknown_ip';

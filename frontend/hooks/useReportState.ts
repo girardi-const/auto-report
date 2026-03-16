@@ -11,6 +11,8 @@ export function useReportState() {
     const [loading, setLoading] = useState<string | null>(null);
     const timers = useRef<Record<string, NodeJS.Timeout>>({});
 
+    console.log(sections)
+
     // Client Info State
     const [clientInfo, setClientInfo] = useState<ClientInfo>({
         name: "",

@@ -27,7 +27,7 @@ export function SectionCard({
                     />
                 </div>
                 <div className="flex items-center gap-2 border-l border-white/10 pl-6">
-                    <span className="text-white/40 text-xs uppercase font-bold tracking-widest">Margin</span>
+                    <span className="text-white/40 text-xs uppercase font-bold tracking-widest">Margem</span>
                     <input
                         type="text"
                         value={section.margin_section || 0}

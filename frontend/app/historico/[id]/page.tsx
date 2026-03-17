@@ -27,6 +27,7 @@ import {
     X,
     ClipboardList,
 } from 'lucide-react';
+import Image from 'next/image';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -489,6 +490,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                                             <thead className="bg-gray-50 text-gray-400 font-black uppercase text-[9px] tracking-[0.2em] border-b border-gray-100">
                                                 <tr>
                                                     <th className="px-6 py-3 text-left">Produto</th>
+                                                    <th className="px-6 py-3 text-left">Imagem</th>
                                                     <th className="px-6 py-3 text-center">Qtd</th>
                                                     <th className="px-6 py-3 text-right">Preço Unit.</th>
                                                     <th className="px-6 py-3 text-right">Desc.</th>
@@ -499,8 +501,11 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                                                 {section.products.map((p, pi) => (
                                                     <tr key={pi} className="hover:bg-gray-50/60 transition-colors">
                                                         <td className="px-6 py-3">
-                                                            <p className="font-semibold text-gray-700 truncate max-w-xs">{p.product_name}</p>
+                                                            <p className="font-semibold text-gray-700 break-words max-w-xs">{p.product_name}</p>
                                                             <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{p.product_id}</span>
+                                                        </td>
+                                                        <td className="px-6 py-3">
+                                                            <Image src={p.image_url || '/placeholder.webp'} alt={p.product_name} width={40} height={40} className="w-16 h-16 object-cover" />
                                                         </td>
                                                         <td className="px-6 py-3 text-center font-medium text-gray-600">{p.quantity}</td>
                                                         <td className="px-6 py-3 text-right font-medium text-gray-600">{formatCurrency(p.price)}</td>

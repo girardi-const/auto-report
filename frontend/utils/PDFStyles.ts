@@ -200,7 +200,7 @@ export const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingLeft: 2,
+        paddingLeft: 20,
         paddingRight: 4,
     },
     productPriceCurrency: {
@@ -218,7 +218,7 @@ export const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingLeft: 2,
+        paddingLeft: 22,
         paddingRight: 4,
     },
     productImageCol: {

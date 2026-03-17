@@ -103,7 +103,7 @@ const TableColumnHeaders: React.FC = () => (
     <View style={styles.tableHeader}>
         <Text style={[styles.tableHeaderCell, { width: '6%' }]}>Qtde.</Text>
         <Text style={[styles.tableHeaderCell, { width: '6%' }]}>{''}</Text>
-        <Text style={[styles.tableHeaderCell, { width: '38%', textAlign: 'left', paddingLeft: 5 }]}>
+        <Text style={[styles.tableHeaderCell, { width: '38%', textAlign: 'center' }]}>
             Descrição
         </Text>
         <Text style={[styles.tableHeaderCell, { width: '18%' }]}>Imagem</Text>

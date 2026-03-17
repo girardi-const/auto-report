@@ -124,7 +124,25 @@ export default function ReportForm({ onSaveSuccess, onSaveError }: ReportFormPro
         }
     };
 
-    const subtotalBeforeCash = sections.reduce((acc, s) => acc + calculateSubtotal(s.products, s.discount), 0);
+    const validSections = sections.map(s => {
+        const validProducts = s.products.filter(p => p.code && p.code.trim() !== "");
+        const groupedProducts = validProducts.reduce((acc, current) => {
+            const existing = acc.find(p => p.code === current.code);
+            if (existing) {
+                existing.units += current.units;
+            } else {
+                acc.push({ ...current });
+            }
+            return acc;
+        }, [] as typeof validProducts);
+
+        return {
+            ...s,
+            products: groupedProducts
+        };
+    });
+
+    const subtotalBeforeCash = validSections.reduce((acc, s) => acc + calculateSubtotal(s.products, s.discount), 0);
     const totalValue = subtotalBeforeCash * (1 - (cashDiscount || 0) / 100);
 
     // ── Persist to backend ────────────────────────────────────────────────────
@@ -136,7 +154,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError }: ReportFormPro
             consultorPhone,
             cash_discount: cashDiscount,
             client_info: clientInfo,
-            sections: buildSectionsPayload(sections, calculateSubtotal),
+            sections: buildSectionsPayload(validSections, calculateSubtotal),
         };
 
         try {
@@ -164,7 +182,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError }: ReportFormPro
             setGeneratingExcel(true);
             // Auto-save before export
             await handleSave();
-            await generateExcel({ especificador, consultor, consultorPhone, sections, cashDiscount, clientInfo });
+            await generateExcel({ especificador, consultor, consultorPhone, sections: validSections, cashDiscount, clientInfo });
         } catch (error) {
             console.error('Error generating Excel:', error);
             alert('Erro ao gerar Excel. Por favor, tente novamente.');
@@ -183,7 +201,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError }: ReportFormPro
                 especificador={especificador}
                 consultor={consultor}
                 consultorPhone={consultorPhone}
-                sections={sections}
+                sections={validSections}
                 totalValue={totalValue}
                 subtotalBeforeCash={subtotalBeforeCash}
                 cashDiscount={cashDiscount}

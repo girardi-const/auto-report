@@ -293,13 +293,15 @@ export default function ProductsPage() {
     const [search, setSearch] = useState('');
     const [brand, setBrand] = useState('');
     const [page, setPage] = useState(1);
+    const [imageFilter, setImageFilter] = useState('');
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const { products: pageItems, total, totalPages, loading, error, refetch } = useProducts({
         page,
         limit: PAGE_SIZE,
         search,
-        brand
+        brand,
+        imageFilter
     });
 
     const { brandNames: brandOptions } = useBrands();
@@ -313,7 +315,10 @@ export default function ProductsPage() {
         if (!authLoading && !user) router.push('/sign-in');
     }, [user, authLoading, router]);
 
-
+    const handleImageFilterChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+        setImageFilter(e.target.value);
+        setPage(1);
+    }, []);
 
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
@@ -334,13 +339,14 @@ export default function ProductsPage() {
         setRawSearch('');
         setSearch('');
         setBrand('');
+        setImageFilter('');
         setPage(1);
     }, []);
 
     // No longer doing client-side filtering and slicing
     // as it's handled completely by the server API
 
-    const hasFilters = rawSearch !== '' || brand !== '';
+    const hasFilters = rawSearch !== '' || brand !== '' || imageFilter !== '';
     const colCount = isAdmin ? 5 : 4;
 
     // ── Auth loading guard
@@ -438,6 +444,17 @@ export default function ProductsPage() {
                                 {b}
                             </option>
                         ))}
+                    </select>
+
+                    <select
+                        id="image-filter"
+                        value={imageFilter}
+                        onChange={handleImageFilterChange}
+                        className="w-full sm:w-56 px-4 py-2.5 text-sm rounded-lg border-2 border-gray-100 focus:border-primary outline-none transition-all font-medium text-gray-700 bg-white appearance-none cursor-pointer"
+                    >
+                        <option value="">Todas as imagens</option>
+                        <option value="true">Com imagem</option>
+                        <option value="false">Sem imagem</option>
                     </select>
 
                     {/* Clear */}

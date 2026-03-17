@@ -78,9 +78,9 @@ export class ProductService {
      * List products from the database with pagination and filters.
      */
     static async listProducts(
-        query: { search?: string; brand?: string; page: number; limit: number; sortBy: string; sortOrder: 'asc' | 'desc' }
+        query: { search?: string; brand?: string; imageFilter?: string; page: number; limit: number; sortBy: string; sortOrder: 'asc' | 'desc' }
     ): Promise<{ data: IProduct[]; total: number; page: number; totalPages: number }> {
-        const { search, brand, page, limit, sortBy, sortOrder } = query;
+        const { search, brand, imageFilter, page, limit, sortBy, sortOrder } = query;
         const skip = (page - 1) * limit;
         const sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 } as Record<string, 1 | -1>;
 
@@ -95,6 +95,12 @@ export class ProductService {
 
         if (brand) {
             filter.brand_name = brand;
+        }
+
+        if (imageFilter === 'true') {
+            filter.imageurl = { $nin: ['', null] };
+        } else if (imageFilter === 'false') {
+            filter.imageurl = { $in: ['', null] };
         }
 
         const [total, products] = await Promise.all([

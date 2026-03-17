@@ -16,6 +16,7 @@ interface UseProductsOptions {
     limit?: number;
     search?: string;
     brand?: string;
+    imageFilter?: string;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
@@ -23,7 +24,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1
 // We no longer use a global in-memory product cache.
 // Caching can be handled by swr, react-query, or simply kept localized to the hook.
 
-export function useProducts({ page = 1, limit = 50, search = '', brand = '' }: UseProductsOptions = {}): UseProductsReturn {
+export function useProducts({ page = 1, limit = 50, search = '', brand = '', imageFilter = '' }: UseProductsOptions = {}): UseProductsReturn {
     const [products, setProducts] = useState<CatalogProduct[]>([]);
     const [total, setTotal] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
@@ -45,6 +46,7 @@ export function useProducts({ page = 1, limit = 50, search = '', brand = '' }: U
             limit: String(limit),
             ...(search && { search }),
             ...(brand && { brand }),
+            ...(imageFilter && { imageFilter }),
         });
 
         fetch(`${API_URL}/products?${params.toString()}`, {
@@ -79,7 +81,7 @@ export function useProducts({ page = 1, limit = 50, search = '', brand = '' }: U
             abortRef.current?.abort();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, limit, search, brand]);
+    }, [page, limit, search, brand, imageFilter]);
 
     return { products, total, page, totalPages, loading, error, refetch };
 }

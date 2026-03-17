@@ -5,6 +5,7 @@ import { PaginationSchema } from './reportValidator';
 export const ProductQuerySchema = PaginationSchema.extend({
     search: z.string().optional(),
     brand: z.string().optional(),
+    imageFilter: z.string().optional(),
     sortBy: z.enum(['updatedAt', 'product_code']).default('updatedAt'),
     sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
@@ -17,7 +18,7 @@ export const CreateProductSchema = z.object({
     description: z.string().optional().default(''),
     brand_name: z.string().min(1, 'Marca é obrigatória').trim(),
     base_price: z.number().nonnegative('Preço base não pode ser negativo'),
-    imageurl: z.string().url('URL de imagem inválida').optional().nullable(),
+    imageurl: z.string().url('URL de imagem inválida').optional(),
 });
 
 export type CreateProductInput = z.infer<typeof CreateProductSchema>;

@@ -21,6 +21,7 @@ import { Section } from "../types";
 function buildSectionsPayload(sections: Section[], calculateSubtotal: (prods: Section['products'], disc: number) => number) {
     return sections.map((s) => ({
         section_name: s.name,
+        section_margin: s.margin_section ?? 0,
         section_discount: s.discount ?? 0,
         products: s.products.map((p) => {
             const priceWithMargin = p.priceBase * (1 + (p.margin || 0) / 100);
@@ -40,16 +41,21 @@ function buildSectionsPayload(sections: Section[], calculateSubtotal: (prods: Se
     }));
 }
 
-export default function ReportForm() {
+interface ReportFormProps {
+    onSaveSuccess?: () => void;
+    onSaveError?: () => void;
+}
+
+export default function ReportForm({ onSaveSuccess, onSaveError }: ReportFormProps = {}) {
     const { state, actions, utils } = useReportState();
     const { brandNames: brands } = useBrands();
     const { saveReport, updateReport, saving } = useReportActions();
 
-    const { especificador, contact, consultor, sections, cashDiscount, loading, clientInfo } = state;
+    const { especificador, contact, consultor, consultorPhone, sections, cashDiscount, loading, clientInfo } = state;
     const {
-        setEspecificador, setContact, setConsultor,
+        setEspecificador, setContact, setConsultor, setConsultorPhone,
         setSections, setCashDiscount, addSection, addProduct, updateProduct,
-        removeSection, removeProduct, updateSectionName, updateClientInfo, clearClientInfo
+        removeSection, removeProduct, updateSectionName, updateClientInfo, clearClientInfo, updateSectionMargin
     } = actions;
     const { calculateSubtotal, timers, setLoading } = utils;
 
@@ -127,6 +133,7 @@ export default function ReportForm() {
             title: getEffectiveTitle(),
             especificador,
             consultor,
+            consultorPhone,
             cash_discount: cashDiscount,
             client_info: clientInfo,
             sections: buildSectionsPayload(sections, calculateSubtotal),
@@ -136,15 +143,18 @@ export default function ReportForm() {
             if (savedReportId) {
                 await updateReport(savedReportId, payload);
                 showSaveStatus('saved');
+                if (onSaveSuccess) onSaveSuccess();
                 return savedReportId;
             } else {
                 const created = await saveReport(payload);
                 setSavedReportId(created._id);
                 showSaveStatus('saved');
+                if (onSaveSuccess) onSaveSuccess();
                 return created._id;
             }
         } catch {
             showSaveStatus('error');
+            if (onSaveError) onSaveError();
             return null;
         }
     };
@@ -154,7 +164,7 @@ export default function ReportForm() {
             setGeneratingExcel(true);
             // Auto-save before export
             await handleSave();
-            await generateExcel({ especificador, consultor, sections, cashDiscount, clientInfo });
+            await generateExcel({ especificador, consultor, consultorPhone, sections, cashDiscount, clientInfo });
         } catch (error) {
             console.error('Error generating Excel:', error);
             alert('Erro ao gerar Excel. Por favor, tente novamente.');
@@ -171,8 +181,8 @@ export default function ReportForm() {
 
             const doc = <ReportPDFDocument
                 especificador={especificador}
-                contact={contact}
                 consultor={consultor}
+                consultorPhone={consultorPhone}
                 sections={sections}
                 totalValue={totalValue}
                 subtotalBeforeCash={subtotalBeforeCash}
@@ -200,6 +210,7 @@ export default function ReportForm() {
         setEspecificador("");
         setContact("");
         setConsultor("");
+        setConsultorPhone("");
         setSections([]);
         setReportTitle("");
         setSavedReportId(null);
@@ -234,7 +245,7 @@ export default function ReportForm() {
                 )}
             </div>
 
-            <GeneralInfo data={{ especificador, consultor }} onChange={{ setEspecificador, setConsultor }} />
+            <GeneralInfo data={{ especificador, consultor, consultorPhone }} onChange={{ setEspecificador, setConsultor, setConsultorPhone }} />
             <ClientInfo data={clientInfo} onChange={updateClientInfo} />
 
             <div className="flex flex-col gap-8">
@@ -250,6 +261,7 @@ export default function ReportForm() {
                             updateProduct,
                             removeProduct,
                             addProduct,
+                            updateSectionMargin,
                             updateSectionDiscount: (id, discount) => setSections(sections.map(s => s.id === id ? { ...s, discount } : s))
                         }}
                         utils={{ calculateSubtotal }}

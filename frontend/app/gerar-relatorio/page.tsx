@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import ReportForm from "../../components/ReportForm";
+import { toast } from "sonner";
 
 export default function GerarRelatorio() {
     const { user, loading } = useAuth();
@@ -30,7 +31,10 @@ export default function GerarRelatorio() {
     return (
         <div className="min-h-screen bg-muted flex flex-col pt-10 px-4 md:px-0">
             <div className="container mx-auto">
-                <ReportForm />
+                <ReportForm
+                    onSaveSuccess={() => toast.success("Relatório salvo com sucesso")}
+                    onSaveError={() => toast.error("Erro ao salvar relatório")}
+                />
             </div>
         </div>
     );

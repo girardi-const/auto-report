@@ -26,6 +26,7 @@ const IMG_ROW_H = 70;  // row height (px) when product has an image
 interface ExportParams {
     especificador: string;
     consultor: string;
+    consultorPhone: string;
     sections: Section[];
     cashDiscount: number;
     clientInfo: ClientInfo;
@@ -137,6 +138,7 @@ function calcUnitPrice(p: { priceBase: number; margin: number; discount: number 
 export async function generateExcel({
     especificador,
     consultor,
+    consultorPhone,
     sections,
     cashDiscount,
     clientInfo,
@@ -191,7 +193,9 @@ export async function generateExcel({
 
     ws.getRow(r).height = 18;
     sc(ws.getCell(r, 1), { value: 'Consultor', bold: true, bg: C.lightBlue });
-    mergeStyle(ws, r, 2, 11, { value: consultor || '-', bg: C.white });
+    mergeStyle(ws, r, 2, 6, { value: consultor || '-', bg: C.white });
+    sc(ws.getCell(r, 7), { value: 'Telefone Consultor', bold: true, bg: C.lightBlue });
+    mergeStyle(ws, r, 8, 11, { value: consultorPhone || '-', bg: C.white });
     r++;
     spacer(ws, r); r++;
 
@@ -283,10 +287,10 @@ export async function generateExcel({
         mergeStyle(ws, r, 1, 8, { value: discLabel, bold: true, bg: C.lightBlue, ha: 'right', sz: 9 });
         sc(ws.getCell(r, 9), { value: 'Subtotal:', bold: true, bg: C.lightBlue, ha: 'right', sz: 9 });
         sc(ws.getCell(r, 10), {
-            value: {
+            value: section.products.length > 0 ? {
                 formula: `SUM(J${sectionStartRow}:J${sectionEndRow})`,
                 result: section.products.reduce((s, p) => s + calcUnitPrice(p) * p.units, 0),
-            } as ExcelJS.CellFormulaValue,
+            } as ExcelJS.CellFormulaValue : 0,
             bold: true, bg: C.lightBlue, ha: 'center', fmt: BRL, sz: 9,
         });
         sc(ws.getCell(r, 11), { bg: C.lightBlue });

@@ -36,6 +36,7 @@ function savedToFrontendSections(report: SavedReport): Section[] {
     return report.sections.map((s) => ({
         id: crypto.randomUUID(),
         name: s.section_name,
+        margin_section: s.section_margin || 0,
         discount: s.section_discount,
         products: s.products.map((p) => {
             // Reconstruct the original priceBase so that we can keep the true margin and discount
@@ -63,6 +64,7 @@ function buildPayload(
     title: string,
     especificador: string,
     consultor: string,
+    consultorPhone: string,
     cashDiscount: number,
     clientInfo: import('../../../types').ClientInfo,
     sections: Section[],
@@ -72,10 +74,12 @@ function buildPayload(
         title,
         especificador,
         consultor,
+        consultorPhone,
         cash_discount: cashDiscount,
         client_info: clientInfo,
         sections: sections.map((s) => ({
             section_name: s.name,
+            section_margin: s.margin_section ?? 0,
             section_discount: s.discount ?? 0,
             products: s.products.map((p) => {
                 const price = p.priceBase * (1 + (p.margin || 0) / 100) * (1 - (p.discount || 0) / 100);
@@ -152,13 +156,21 @@ function FieldDisplay({ label, value }: { label: string; value: string }) {
 export default function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const searchParams = useSearchParams();
+    console.log(searchParams);
     const { user, loading: authLoading, isAdmin, getIdToken } = useAuth();
     const router = useRouter();
 
     const [report, setReport] = useState<SavedReport | null>(null);
     const [fetching, setFetching] = useState(true);
     const [fetchError, setFetchError] = useState('');
-    const [editMode, setEditMode] = useState(searchParams.get('edit') === '1');
+    const [editMode, setEditMode] = useState(false);
+
+    useEffect(() => {
+        if (searchParams.get('edit') === '1') {
+            setEditMode(true);
+        }
+    }, [searchParams]);
+
     const [showDelete, setShowDelete] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
     const saveStatusTimer = useRef<NodeJS.Timeout | null>(null);
@@ -172,10 +184,10 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
     const [generatingExcel, setGeneratingExcel] = useState(false);
     const [reportTitle, setReportTitle] = useState('');
 
-    const { especificador, contact, consultor, sections, cashDiscount, loading: productLoading, clientInfo } = state;
+    const { especificador, contact, consultor, consultorPhone, sections, cashDiscount, loading: productLoading, clientInfo } = state;
     const {
-        setEspecificador, setContact, setConsultor, setSections,
-        setCashDiscount, addSection, addProduct, updateProduct,
+        setEspecificador, setContact, setConsultor, setConsultorPhone, setSections,
+        setCashDiscount, addSection, addProduct, updateProduct, updateSectionMargin,
         removeSection, removeProduct, updateSectionName, updateClientInfo,
     } = actions;
     const { calculateSubtotal, timers, setLoading } = utils;
@@ -208,6 +220,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 setSections(savedToFrontendSections(fetched));
                 if (fetched.especificador) setEspecificador(fetched.especificador);
                 if (fetched.consultor) setConsultor(fetched.consultor);
+                if (fetched.consultorPhone) setConsultorPhone(fetched.consultorPhone);
                 if (fetched.cash_discount != null) setCashDiscount(fetched.cash_discount);
                 if (fetched.client_info) {
                     const ci = fetched.client_info;
@@ -237,7 +250,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
 
     const handleSave = async () => {
         if (!report) return;
-        const payload = buildPayload(reportTitle || report.title, especificador, consultor, cashDiscount, clientInfo, sections, calculateSubtotal);
+        const payload = buildPayload(reportTitle || report.title, especificador, consultor, consultorPhone, cashDiscount, clientInfo, sections, calculateSubtotal);
         try {
             await updateReport(report._id, payload);
             setReport(prev => prev ? { ...prev, title: payload.title, sections: payload.sections as SavedReport['sections'] } : prev);
@@ -252,7 +265,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
         if (!report) return;
         try {
             await deleteReport(report._id);
-            router.push('/reports');
+            router.push('/historico');
         } catch {
             alert('Erro ao deletar relatório.');
         }
@@ -289,8 +302,8 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
             const doc = (
                 <ReportPDFDocument
                     especificador={especificador}
-                    contact={contact}
                     consultor={consultor}
+                    consultorPhone={consultorPhone}
                     sections={sections}
                     totalValue={totalValue}
                     subtotalBeforeCash={subtotalBeforeCash}
@@ -313,7 +326,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
         setGeneratingExcel(true);
         try {
             await handleSave();
-            await generateExcel({ especificador, consultor, sections, cashDiscount, clientInfo });
+            await generateExcel({ especificador, consultor, consultorPhone, sections, cashDiscount, clientInfo });
         } catch { alert('Erro ao gerar Excel.'); }
         finally { setGeneratingExcel(false); }
     };
@@ -439,10 +452,11 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 {!editMode && (
                     <div className="flex flex-col gap-6">
                         {/* Client / Especificador / Consultor summary */}
-                        {(report.especificador || report.consultor || report.client_info?.name) && (
+                        {(report.especificador || report.consultor || report.consultorPhone || report.client_info?.name) && (
                             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 grid grid-cols-2 md:grid-cols-4 gap-5">
                                 {report.especificador && <FieldDisplay label="Especificador" value={report.especificador} />}
                                 {report.consultor && <FieldDisplay label="Consultor" value={report.consultor} />}
+                                {report.consultorPhone && <FieldDisplay label="Telefone Consultor" value={report.consultorPhone} />}
                                 {report.client_info?.name && <FieldDisplay label="Cliente" value={report.client_info.name} />}
                                 {report.client_info?.telefone && <FieldDisplay label="Telefone" value={report.client_info.telefone} />}
                             </div>
@@ -517,7 +531,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 {/* ── Edit Mode: Full Form ──────────────────────────── */}
                 {editMode && (
                     <>
-                        <GeneralInfo data={{ especificador, consultor }} onChange={{ setEspecificador, setConsultor }} />
+                        <GeneralInfo data={{ especificador, consultor, consultorPhone }} onChange={{ setEspecificador, setConsultor, setConsultorPhone }} />
                         <ClientInfoComp data={clientInfo} onChange={updateClientInfo} />
 
                         <div className="flex flex-col gap-8">
@@ -533,6 +547,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                                         updateProduct,
                                         removeProduct,
                                         addProduct,
+                                        updateSectionMargin,
                                         updateSectionDiscount: (sid, discount) =>
                                             setSections(sections.map(s => s.id === sid ? { ...s, discount } : s)),
                                     }}

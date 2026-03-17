@@ -18,6 +18,7 @@ export interface Product {
 export interface Section {
     id: string;
     name: string;
+    margin_section: number;
     discount: number;
     products: Product[];
 }
@@ -27,6 +28,7 @@ export interface PDFDocumentProps {
     contact: string;
     sections: Section[];
     consultor: string;
+    consultorPhone: string;
     totalValue: number;
     subtotalBeforeCash: number;
     cashDiscount: number;
@@ -71,6 +73,7 @@ export interface SectionCardProps {
         removeProduct: (sectionId: string, productId: string) => void;
         addProduct: (sectionId: string) => void;
         updateSectionDiscount: (id: string, discount: number) => void;
+        updateSectionMargin: (id: string, margin: number) => void;
     };
     utils: {
         calculateSubtotal: (products: Product[], discount: number) => number;
@@ -81,6 +84,7 @@ export interface SectionCardProps {
 export interface ProductTableProps {
     products: Product[];
     sectionId: string;
+    sectionMargin: number;
     brands: string[];
     loadingProductId: string | null;
     onUpdateProduct: (productId: string, updates: Partial<Product>) => void;
@@ -104,6 +108,7 @@ export interface SavedReportProduct {
 
 export interface SavedReportSection {
     section_name: string;
+    section_margin: number;
     section_discount: number;
     products: SavedReportProduct[];
 }
@@ -114,6 +119,7 @@ export interface SavedReport {
     creator_name: string;
     especificador?: string;
     consultor?: string;
+    consultorPhone?: string;
     cash_discount?: number;
     client_info?: ClientInfo;
     sections: SavedReportSection[];

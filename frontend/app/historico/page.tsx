@@ -192,6 +192,7 @@ export default function ReportsPage() {
             const sections = report.sections.map((s) => ({
                 id: s.section_name,
                 name: s.section_name,
+                margin_section: 0,
                 discount: s.section_discount,
                 products: s.products.map((p, i) => ({
                     id: String(i),
@@ -215,8 +216,8 @@ export default function ReportsPage() {
             const doc = (
                 <ReportPDFDocument
                     especificador={report.especificador ?? ''}
-                    contact={""}
                     consultor={report.consultor ?? ''}
+                    consultorPhone={report.consultorPhone ?? ''}
                     sections={sections}
                     totalValue={totalValue}
                     subtotalBeforeCash={subtotalBeforeCash}
@@ -247,6 +248,7 @@ export default function ReportsPage() {
             const sections = report.sections.map((s) => ({
                 id: s.section_name,
                 name: s.section_name,
+                margin_section: 0,
                 discount: s.section_discount,
                 products: s.products.map((p, i) => ({
                     id: String(i),
@@ -264,6 +266,7 @@ export default function ReportsPage() {
             await generateExcel({
                 especificador: report.especificador ?? '',
                 consultor: report.consultor ?? '',
+                consultorPhone: report.consultorPhone ?? '',
                 sections,
                 cashDiscount: report.cash_discount ?? 0,
                 clientInfo: report.client_info ?? { name: '', telefone: '' },
@@ -529,7 +532,7 @@ export default function ReportsPage() {
                                                         {canAct && (
                                                             <>
                                                                 <Link
-                                                                    href={`/reports/${r._id}?edit=1`}
+                                                                    href={`/historico/${r._id}?edit=1`}
                                                                     title="Editar relatório"
                                                                     className="p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-all"
                                                                 >

@@ -9,10 +9,12 @@ export interface IReport extends Document {
     title: string;
     especificador: string;
     consultor: string;
+    consultorPhone: string;
     cash_discount: number;
     client_info: IClientInfo;
     sections: {
         section_name: string;
+        section_margin: number;
         section_discount: number;
         products: {
             product_name: string;
@@ -48,12 +50,14 @@ const ReportSchema = new Schema<IReport>(
         },
         especificador: { type: String, default: '' },
         consultor: { type: String, default: '' },
+        consultorPhone: { type: String, default: '' },
         cash_discount: { type: Number, default: 0 },
         client_info: { type: ClientInfoSchema, default: () => ({}) },
         sections: [
             {
                 _id: false,
                 section_name: { type: String, required: true, trim: true },
+                section_margin: { type: Number, required: true, default: 0 },
                 section_discount: { type: Number, required: true, default: 0 },
                 products: [
                     {

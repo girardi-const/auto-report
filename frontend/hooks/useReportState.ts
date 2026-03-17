@@ -6,12 +6,11 @@ export function useReportState() {
     const [especificador, setEspecificador] = useState("");
     const [contact, setContact] = useState("");
     const [consultor, setConsultor] = useState("");
+    const [consultorPhone, setConsultorPhone] = useState("");
     const [sections, setSections] = useState<Section[]>([]);
     const [cashDiscount, setCashDiscount] = useState(0);
     const [loading, setLoading] = useState<string | null>(null);
     const timers = useRef<Record<string, NodeJS.Timeout>>({});
-
-    console.log(sections)
 
     // Client Info State
     const [clientInfo, setClientInfo] = useState<ClientInfo>({
@@ -34,6 +33,7 @@ export function useReportState() {
         const newSection: Section = {
             id: crypto.randomUUID(),
             name: `Nova Seção ${sections.length + 1}`,
+            margin_section: 0,
             discount: 0,
             products: [],
         };
@@ -46,6 +46,14 @@ export function useReportState() {
 
     const updateSectionName = (id: string, name: string) => {
         setSections(prev => prev.map(s => s.id === id ? { ...s, name } : s));
+    };
+
+    const updateSectionMargin = (id: string, margin: number) => {
+        setSections(prev => prev.map(s => s.id === id ? { 
+            ...s, 
+            margin_section: margin,
+            products: s.products.map(p => ({ ...p, margin }))
+        } : s));
     };
 
     const addProduct = (sectionId: string) => {
@@ -61,7 +69,7 @@ export function useReportState() {
             image: "",
         };
         setSections(prev => prev.map(s =>
-            s.id === sectionId ? { ...s, products: [...s.products, newProduct] } : s
+            s.id === sectionId ? { ...s, products: [...s.products, { ...newProduct, margin: s.margin_section || 0 }] } : s
         ));
     };
 
@@ -91,10 +99,11 @@ export function useReportState() {
     };
 
     return {
-        state: { especificador, contact, consultor, sections, cashDiscount, loading, clientInfo },
+        state: { especificador, contact, consultor, consultorPhone, sections, cashDiscount, loading, clientInfo },
         actions: {
-            setEspecificador, setContact, setConsultor,
+            setEspecificador, setContact, setConsultor, setConsultorPhone,
             setSections, setCashDiscount, addSection, addProduct, updateProduct,
+            updateSectionMargin,
             removeSection, removeProduct, updateSectionName, updateClientInfo, clearClientInfo
         },
         utils: { calculateSubtotal, timers, setLoading }

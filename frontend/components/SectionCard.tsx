@@ -26,6 +26,16 @@ export function SectionCard({
                         className="bg-transparent text-white font-black text-lg outline-none border-b-2 border-transparent focus:border-primary/50 transition-all uppercase tracking-tight"
                     />
                 </div>
+                <div className="flex items-center gap-2 border-l border-white/10 pl-6">
+                    <span className="text-white/40 text-xs uppercase font-bold tracking-widest">Margin</span>
+                    <input
+                        type="text"
+                        value={section.margin_section || 0}
+                        onChange={(e) => actions.updateSectionMargin(section.id, parseFloat(e.target.value))}
+                        className="w-16 bg-white/5 text-white font-bold font-mono text-sm p-1 rounded border border-white/10 outline-none focus:border-primary/50 transition-all text-center"
+                    />
+                    <span className="text-white/40 text-xs">%</span>
+                </div>
                 <button
                     onClick={() => actions.removeSection(section.id)}
                     className="text-white/20 hover:text-primary transition-all hover:scale-110"
@@ -39,6 +49,7 @@ export function SectionCard({
             <ProductTable
                 products={section.products}
                 sectionId={section.id}
+                sectionMargin={Number(section.margin_section)}
                 brands={brands}
                 loadingProductId={loadingProductId}
                 onUpdateProduct={(productId, updates) => actions.updateProduct(section.id, productId, updates)}

@@ -8,6 +8,7 @@ export function ProductTable({
     sectionId,
     brands,
     loadingProductId,
+    sectionMargin,
     onUpdateProduct,
     onRemoveProduct,
     onAddProduct,
@@ -20,6 +21,7 @@ export function ProductTable({
                     <thead className="bg-gray-50 text-gray-400 font-black uppercase text-[9px] tracking-[0.2em] border-b border-gray-100">
                         <tr>
                             <th className="px-8 py-4">Código</th>
+                            <th className="px-8 py-4">Imagem</th>
                             <th className="px-8 py-4">Marca</th>
                             <th className="px-8 py-4">Produto</th>
                             <th className="px-4 py-4 w-24">Und.</th>
@@ -35,6 +37,7 @@ export function ProductTable({
                                 key={product.id}
                                 product={product}
                                 sectionId={sectionId}
+                                sectionMargin={sectionMargin}
                                 brands={brands}
                                 isLoading={loadingProductId === product.id}
                                 onUpdate={(updates) => onUpdateProduct(product.id, updates)}

@@ -1,10 +1,12 @@
 import { Trash2, Loader2 } from "lucide-react";
 import { Product } from "../types";
 import { formatCurrency } from "../utils/formatters";
+import Image from "next/image";
 
 interface ProductRowProps {
     product: Product;
     sectionId: string;
+    sectionMargin: number;
     brands: string[];
     isLoading: boolean;
     onUpdate: (updates: Partial<Product>) => void;
@@ -16,6 +18,7 @@ export function ProductRow({
     product,
     brands,
     isLoading,
+    sectionMargin,
     onUpdate,
     onRemove,
     onCodeChange,
@@ -40,6 +43,9 @@ export function ProductRow({
                 )}
             </td>
             <td className="px-8 py-4">
+                <Image src={product.image || "/placeholder.webp"} alt={product.name} width={68} height={68} className="w-16 h-16 object-cover rounded-lg" />
+            </td>
+            <td className="px-8 py-4">
                 <select
                     value={product.brand}
                     onChange={(e) => onUpdate({ brand: e.target.value })}
@@ -52,7 +58,7 @@ export function ProductRow({
                 </select>
             </td>
             <td className="px-8 py-4">
-                <span className={`${product.priceBase === 0 ? "text-gray-300" : "text-gray-500"} italic text-[11px] font-medium leading-tight block truncate max-w-[150px]`}>
+                <span className={`${product.priceBase === 0 ? "text-gray-300" : "text-gray-500"} italic text-[11px] font-medium leading-tight block whitespace-normal break-words max-w-[250px]`}>
                     {product.name}
                 </span>
             </td>
@@ -88,9 +94,9 @@ export function ProductRow({
             <td className="px-8 py-4 text-center">
                 <button
                     onClick={onRemove}
-                    className="text-gray-200 hover:text-primary transition-all opacity-0 group-hover:opacity-100"
+                    className="text-red-400 hover:text-red-600 transition-all opacity-40 group-hover:opacity-100"
                 >
-                    <Trash2 size={16} />
+                    <Trash2 size={18} />
                 </button>
             </td>
         </tr>

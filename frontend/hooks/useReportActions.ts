@@ -8,6 +8,7 @@ interface ReportPayload {
     title: string;
     especificador?: string;
     consultor?: string;
+    consultorPhone?: string;
     cash_discount?: number;
     client_info?: Partial<ClientInfo>;
     sections: {

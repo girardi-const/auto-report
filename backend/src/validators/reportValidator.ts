@@ -7,8 +7,8 @@ const ReportProductSchema = z.object({
     brand: z.string().optional().default(''),
     image_url: z.string().optional().default(''),
     price: z.number().nonnegative('Preço não pode ser negativo'),
-    margin: z.number().min(0).max(100),
-    discount: z.number().min(0).max(100),
+    margin: z.number(),
+    discount: z.number(),
     quantity: z.number().int().positive('Quantidade deve ser um número positivo'),
     total: z.number().nonnegative(),
 });
@@ -16,8 +16,8 @@ const ReportProductSchema = z.object({
 // ── Section stored in a report ─────────────────────────────────────────────
 const ReportSectionSchema = z.object({
     section_name: z.string().min(1, 'Nome da seção é obrigatório'),
-    section_margin: z.number().min(0).max(100).default(0),
-    section_discount: z.number().min(0).max(100).default(0),
+    section_margin: z.number().default(0),
+    section_discount: z.number().default(0),
     products: z.array(ReportProductSchema),
 });
 

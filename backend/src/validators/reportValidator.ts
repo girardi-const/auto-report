@@ -33,7 +33,7 @@ export const CreateReportSchema = z.object({
     especificador: z.string().optional().default(''),
     consultor: z.string().optional().default(''),
     consultorPhone: z.string().optional().default(''),
-    cash_discount: z.number().min(0).max(100).optional().default(0),
+    cash_discount: z.number().optional().default(0),
     client_info: ClientInfoSchema.optional(),
     sections: z.array(ReportSectionSchema).min(1, 'Relatório deve ter pelo menos uma seção'),
 });

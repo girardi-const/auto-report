@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Trash2, Loader2, UploadCloud } from "lucide-react";
+import { Trash2, Loader2, UploadCloud, Search } from "lucide-react";
 import { toast } from "sonner";
-import { Product } from "../types";
+import { Product, CatalogProduct } from "../types";
 import { formatCurrency, formatPriceInput, parseLocaleNumber } from "../utils/formatters";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
+import { SearchProductModal } from "./SearchProductModal";
 
 interface ProductRowProps {
     product: Product;
@@ -35,6 +36,11 @@ export function ProductRow({
     );
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+    const handleSearchSelect = (catalogProduct: CatalogProduct) => {
+        onCodeChange(catalogProduct.product_code);
+    };
 
     useEffect(() => {
         if (!isFocused) {
@@ -147,18 +153,29 @@ export function ProductRow({
 
     return (
         <tr className="group hover:bg-gray-50/50 transition-colors">
-            <td className="px-8 py-4 relative">
-                <input
-                    type="text"
-                    value={product.code}
-                    onChange={(e) => onCodeChange(e.target.value)}
-                    placeholder="TENTE: 123"
-                    className={`w-full bg-transparent outline-none font-bold text-xs border-2 rounded-lg px-3 py-2 transition-all ${isLoading ? "border-primary/30" : "border-gray-100 focus:border-primary"
-                        } focus:bg-white`}
-                />
-                {isLoading && (
-                    <Loader2 size={12} className="absolute right-10 top-1/2 -translate-y-1/2 animate-spin text-primary" />
-                )}
+            <td className="px-2 py-3 relative">
+                <div className="flex items-center gap-1.5">
+                    <button
+                        onClick={() => setIsSearchOpen(true)}
+                        title="Buscar produto por nome"
+                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md border border-gray-200 text-gray-300 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all"
+                    >
+                        <Search size={12} strokeWidth={2.5} />
+                    </button>
+                    <div className="relative flex-1 min-w-[90px]">
+                        <input
+                            type="text"
+                            value={product.code}
+                            onChange={(e) => onCodeChange(e.target.value)}
+                            placeholder="Código..."
+                            className={`w-full bg-transparent outline-none font-bold text-xs border-2 rounded-lg px-2 py-2 transition-all ${isLoading ? "border-primary/30" : "border-gray-100 focus:border-primary"
+                                } focus:bg-white`}
+                        />
+                        {isLoading && (
+                            <Loader2 size={12} className="absolute right-2 top-1/2 -translate-y-1/2 animate-spin text-primary" />
+                        )}
+                    </div>
+                </div>
             </td>
             <td className="px-8 py-4">
                 <div className="relative group/image w-16 h-16 rounded-lg overflow-hidden border-2 border-dashed border-gray-200 hover:border-primary transition-colors flex items-center justify-center bg-gray-50">
@@ -310,6 +327,11 @@ export function ProductRow({
                         </div>
                     </div>
                 )}
+                <SearchProductModal
+                    isOpen={isSearchOpen}
+                    onClose={() => setIsSearchOpen(false)}
+                    onSelect={handleSearchSelect}
+                />
             </td>
         </tr>
     );

@@ -177,7 +177,7 @@ export const styles = StyleSheet.create({
     },
     productUnit: {
         width: '6%',
-        textAlign: 'center',
+        textAlign: 'left',
         fontSize: 7.5,
         color: '#666666',
     },
@@ -186,6 +186,7 @@ export const styles = StyleSheet.create({
         paddingLeft: 5,
         paddingRight: 4,
         fontSize: 7.5,
+        textAlign: 'center',
         lineHeight: 1.5,
         color: '#000000',
         justifyContent: 'center',
@@ -205,12 +206,13 @@ export const styles = StyleSheet.create({
     },
     productPriceCurrency: {
         fontSize: 8,
+        textAlign: 'center',
         color: '#000000',
     },
     productPriceValue: {
         fontSize: 8,
         color: '#000000',
-        textAlign: 'right',
+        textAlign: 'center',
         flex: 1,
     },
     productSubtotalCol: {

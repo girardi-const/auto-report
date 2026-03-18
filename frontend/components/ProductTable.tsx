@@ -1,7 +1,6 @@
 import { Plus } from "lucide-react";
-import { Product, ProductTableProps } from "../types";
+import { ProductTableProps } from "../types";
 import { ProductRow } from "./ProductRow";
-
 
 export function ProductTable({
     products,
@@ -20,7 +19,7 @@ export function ProductTable({
                 <table className="w-full text-left text-sm">
                     <thead className="bg-gray-50 text-gray-400 font-black uppercase text-[9px] tracking-[0.2em] border-b border-gray-100">
                         <tr>
-                            <th className="px-8 py-4">Código</th>
+                            <th className="px-3 py-4">Código</th>
                             <th className="px-8 py-4">Imagem</th>
                             <th className="px-8 py-4">Marca</th>
                             <th className="px-8 py-4">Produto</th>
@@ -49,6 +48,7 @@ export function ProductTable({
                     </tbody>
                 </table>
             </div>
+
             <button
                 onClick={onAddProduct}
                 className="w-full py-6 flex items-center justify-center gap-3 text-primary hover:bg-primary/5 transition-all font-black text-[11px] uppercase tracking-[0.3em] border-t border-dashed border-gray-100"
@@ -61,3 +61,4 @@ export function ProductTable({
         </div>
     );
 }
+

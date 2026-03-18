@@ -12,6 +12,16 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "arquivos.mercos.com",
         pathname: "/**"
+      },
+      {
+        protocol: "https",
+        hostname: "dexcoprod.vteximg.com.br",
+        pathname: "/**"
+      },
+      {
+        protocol: "https",
+        hostname: "deca.com.br",
+        pathname: "/**"
       }
     ],
   },
@@ -20,6 +30,10 @@ const nextConfig: NextConfig = {
       {
         source: '/api/mercos-images/:path*',
         destination: 'https://arquivos.mercos.com/:path*',
+      },
+      {
+        source: '/api/dexco-images/:path*',
+        destination: 'https://dexcoprod.vteximg.com.br/:path*',
       },
     ];
   },

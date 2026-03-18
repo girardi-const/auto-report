@@ -5,18 +5,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, UploadCloud, CheckCircle2, PlayCircle, StopCircle } from 'lucide-react';
 
-interface DokaProduct {
-    codigo: string;
-    nome: string;
-    preco: number;
-    imagem: string;
+interface DecaProduct {
+    code: string;
+    product_name: string;
+    price: number;
+    image_url: string | null;
+    brand: string;
 }
 
-export default function SyncDokaPage() {
+export default function SyncDecaPage() {
     const { getIdToken } = useAuth();
     const [fileOptions, setFileOptions] = useState<File | null>(null);
-    const [products, setProducts] = useState<DokaProduct[]>([]);
-    
+    const [products, setProducts] = useState<DecaProduct[]>([]);
+
     const [running, setRunning] = useState(false);
     const [progress, setProgress] = useState(0);
     const [stats, setStats] = useState({ created: 0, updated: 0, failed: 0 });
@@ -46,22 +47,22 @@ export default function SyncDokaPage() {
         setFileOptions(file);
     };
 
-    const processConcurrently = async (items: DokaProduct[], concurrency: number) => {
+    const processConcurrently = async (items: DecaProduct[], concurrency: number) => {
         let currentIndex = 0;
         let c = 0;
         let u = 0;
         let f = 0;
-        
+
         const token = await getIdToken();
         const headers = {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`
         };
 
-        const processItem = async (item: DokaProduct) => {
+        const processItem = async (item: DecaProduct) => {
             try {
-                const getRes = await fetch(`${API}/products/${encodeURIComponent(item.codigo)}`, { headers });
-                
+                const getRes = await fetch(`${API}/products/${encodeURIComponent(item.code)}`, { headers });
+
                 if (getRes.ok) {
                     const data = await getRes.json();
                     const existingProduct = data.data;
@@ -69,7 +70,7 @@ export default function SyncDokaPage() {
                     const putRes = await fetch(`${API}/products/${existingProduct._id}`, {
                         method: 'PUT',
                         headers,
-                        body: JSON.stringify({ base_price: item.preco })
+                        body: JSON.stringify({ base_price: item.price })
                     });
 
                     if (putRes.ok) {
@@ -78,16 +79,21 @@ export default function SyncDokaPage() {
                         f++;
                     }
                 } else if (getRes.status === 404) {
+                    const isValidUrl = item.image_url && item.image_url.trim().length > 0;
+                    const requestBody: any = {
+                        product_code: item.code,
+                        description: item.product_name,
+                        base_price: item.price,
+                        brand_name: 'DECA'
+                    };
+                    if (isValidUrl) {
+                       requestBody.imageurl = item.image_url!.trim();
+                    }
+
                     const postRes = await fetch(`${API}/products`, {
                         method: 'POST',
                         headers,
-                        body: JSON.stringify({
-                            product_code: item.codigo,
-                            description: item.nome,
-                            base_price: item.preco,
-                            imageurl: item.imagem,
-                            brand_name: 'DOKA'
-                        })
+                        body: JSON.stringify(requestBody)
                     });
 
                     if (postRes.ok) {
@@ -106,7 +112,7 @@ export default function SyncDokaPage() {
         const workers = Array(concurrency).fill(null).map(async () => {
             while (true) {
                 if (cancelRef.current) break;
-                
+
                 // JS is single-threaded, atomic
                 let index = currentIndex++;
 
@@ -152,8 +158,8 @@ export default function SyncDokaPage() {
 
     return (
         <div className="max-w-4xl mx-auto p-8 space-y-6">
-            <h1 className="text-2xl font-bold mb-4">Sync JSON DOKA</h1>
-            
+            <h1 className="text-2xl font-bold mb-4">Sync JSON DECA</h1>
+
             <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
                 <input
                     type="file"
@@ -173,12 +179,12 @@ export default function SyncDokaPage() {
             {products.length > 0 && (
                 <div className="bg-white rounded-xl shadow p-6 border border-gray-100 flex flex-col items-center">
                     <div className="w-full bg-gray-200 rounded-full h-4 mb-4 overflow-hidden">
-                        <div 
-                            className="bg-primary h-4 transition-all duration-300" 
+                        <div
+                            className="bg-primary h-4 transition-all duration-300"
                             style={{ width: `${(progress / products.length) * 100}%` }}
                         ></div>
                     </div>
-                    
+
                     <div className="flex justify-between w-full text-sm font-semibold text-gray-600 mb-6">
                         <span>Progresso: {progress} / {products.length}</span>
                         <span>{((progress / products.length) * 100).toFixed(1)}%</span>

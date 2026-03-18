@@ -5,6 +5,7 @@ export interface ClientInfo {
 
 export interface Product {
     id: string;
+    dbId?: string;
     code: string;
     brand: string;
     name: string;

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { requireAdmin } from '../middleware/authMiddleware';
+import { requireAdmin, requireAuth } from '../middleware/authMiddleware';
 import {
     getProductByCode,
     listProducts,
@@ -8,6 +8,7 @@ import {
     createProductWithImage,
     updateProduct,
     deleteProduct,
+    updateProductImage,
 } from '../controllers/productController';
 
 const router = Router();
@@ -29,6 +30,7 @@ router.get('/:code', getProductByCode);
 router.post('/', requireAdmin, createProduct);
 router.post('/upload', requireAdmin, upload.single('image'), createProductWithImage);
 router.put('/:id', requireAdmin, upload.single('image'), updateProduct);
+router.patch('/:id/image', requireAuth, upload.single('image'), updateProductImage);
 router.delete('/:id', requireAdmin, deleteProduct);
 
 export default router;

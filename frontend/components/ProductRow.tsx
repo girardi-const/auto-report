@@ -1,7 +1,9 @@
-import { Trash2, Loader2 } from "lucide-react";
+import React, { useState } from "react";
+import { Trash2, Loader2, UploadCloud } from "lucide-react";
 import { Product } from "../types";
 import { formatCurrency } from "../utils/formatters";
 import Image from "next/image";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProductRowProps {
     product: Product;
@@ -23,6 +25,46 @@ export function ProductRow({
     onRemove,
     onCodeChange,
 }: ProductRowProps) {
+    const { getIdToken } = useAuth();
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+    const handleImageUpload = async (file: File) => {
+        if (!product.dbId) {
+            alert("Este produto não foi encontrado no banco de dados.");
+            return;
+        }
+
+        try {
+            setIsUploadingImage(true);
+            const token = await getIdToken();
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+            const res = await fetch(`${API_URL}/products/${product.dbId}/image`, {
+                method: 'PATCH',
+                headers: {
+                    Authorization: `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            if (!res.ok) {
+                throw new Error("Erro ao atualizar imagem");
+            }
+
+            const data = await res.json();
+            if (data.data?.imageurl) {
+                onUpdate({ image: data.data.imageurl });
+            }
+        } catch (error) {
+            console.error("Upload error:", error);
+            alert("Não foi possível atualizar a imagem.");
+        } finally {
+            setIsUploadingImage(false);
+        }
+    };
+
     const subtotal = (product.priceBase + (product.priceBase * product.margin / 100)) *
         (1 - (product.discount || 0) / 100) *
         product.units;
@@ -43,7 +85,29 @@ export function ProductRow({
                 )}
             </td>
             <td className="px-8 py-4">
-                <Image src={product.image || "/placeholder.webp"} alt={product.name} width={68} height={68} className="w-16 h-16 object-cover rounded-lg" />
+                <div className="relative group/image w-16 h-16 rounded-lg overflow-hidden border-2 border-dashed border-gray-200 hover:border-primary transition-colors flex items-center justify-center bg-gray-50">
+                    {isUploadingImage ? (
+                        <Loader2 size={24} className="animate-spin text-primary" />
+                    ) : product.dbId ? (
+                        product.image ? (
+                            <>
+                                <Image src={product.image} alt={product.name} width={68} height={68} className="w-full h-full object-cover" />
+                                <label className="absolute inset-0 bg-black/50 opacity-0 group-hover/image:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer">
+                                    <UploadCloud size={16} className="text-white mb-1" />
+                                    <span className="text-[8px] font-black text-white uppercase tracking-widest text-center px-1">Alterar</span>
+                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])} />
+                                </label>
+                            </>
+                        ) : (
+                            <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors">
+                                <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest text-center leading-tight px-1">Produto sem foto<br />Adicione</span>
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])} />
+                            </label>
+                        )
+                    ) : (
+                        <Image src="/placeholder.webp" alt="Placeholder" width={68} height={68} className="w-full h-full object-cover opacity-40 grayscale" />
+                    )}
+                </div>
             </td>
             <td className="px-8 py-4">
                 <select

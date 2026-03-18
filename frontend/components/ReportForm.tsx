@@ -110,9 +110,10 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
                         ...s,
                         products: s.products.map(p => {
                             if (p.id !== productId || p.code !== code) return p;
-                            if (!match) return { ...p, name: "Produto não encontrado", priceBase: 0, image: "" };
+                            if (!match) return { ...p, name: "Produto não encontrado", priceBase: 0, image: "", dbId: undefined };
                             return {
                                 ...p,
+                                dbId: match._id,
                                 name: match.description,
                                 priceBase: match.base_price,
                                 brand: match.brand_name,

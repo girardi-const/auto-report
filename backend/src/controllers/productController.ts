@@ -128,6 +128,36 @@ export const updateProduct = async (
 };
 
 /**
+ * PATCH /api/v1/products/:id/image
+ * Update only a product's image. Authenticated users only.
+ */
+export const updateProductImage = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        if (!req.file) {
+            res.status(400).json(
+                createErrorResponse('NO_IMAGE', 'Nenhuma imagem foi fornecida')
+            );
+            return;
+        }
+
+        const product = await ProductService.updateProduct(req.params.id, {}, req.file.buffer);
+        res.json(createSuccessResponse(product));
+    } catch (error: any) {
+        if (error.message === 'Produto não encontrado') {
+            res.status(404).json(
+                createErrorResponse('PRODUCT_NOT_FOUND', error.message)
+            );
+            return;
+        }
+        next(error);
+    }
+};
+
+/**
  * DELETE /api/v1/products/:id
  * Delete a product and its Cloudinary image. Admin only.
  */

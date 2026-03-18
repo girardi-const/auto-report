@@ -165,8 +165,8 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                         ...s,
                         products: s.products.map(p => {
                             if (p.id !== productId || p.code !== code) return p;
-                            if (!match) return { ...p, name: 'Produto não encontrado', priceBase: 0, image: '' };
-                            return { ...p, name: match.description, priceBase: match.base_price, brand: match.brand_name, image: match.imageurl ?? '' };
+                            if (!match) return { ...p, name: 'Produto não encontrado', priceBase: 0, image: '', dbId: undefined };
+                            return { ...p, dbId: match._id, name: match.description, priceBase: match.base_price, brand: match.brand_name, image: match.imageurl ?? '' };
                         }),
                     };
                 }));

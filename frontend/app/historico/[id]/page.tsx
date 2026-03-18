@@ -9,15 +9,14 @@ import { useReportActions } from '../../../hooks/useReportActions';
 import { useReportState } from '../../../hooks/useReportState';
 import { useBrands } from '../../../hooks/useBrands';
 import { useProducts } from '../../../hooks/useProducts';
-import { SectionCard } from '../../../components/SectionCard';
-import { FinalCashDiscount } from '../../../components/FinalCashDiscount';
-import { FloatingActionBar } from '../../../components/FloatingActionBar';
-import { GeneralInfo } from '../../../components/Generalnfo';
-import { ClientInfo as ClientInfoComp } from '../../../components/ClientInfo';
+import ReportForm from '../../../components/ReportForm';
 import { formatCurrency } from '../../../utils/formatters';
 import { generateExcel } from '../../../utils/excelExporter';
 import { pdf as generatePdf } from '@react-pdf/renderer';
 import { ReportPDFDocument } from '../../../components/PDFDocument';
+import { savedToFrontendSections, buildPayload } from '../../../utils/historicoHelpers';
+import { DeleteModal } from '../../../components/HistoricoPage/DeleteModal';
+import { FieldDisplay } from '../../../components/HistoricoPage/FieldDisplay';
 import {
     ArrowLeft,
     Pencil,
@@ -26,132 +25,13 @@ import {
     Loader2,
     X,
     ClipboardList,
+    EyeIcon,
 } from 'lucide-react';
 import Image from 'next/image';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function savedToFrontendSections(report: SavedReport): Section[] {
-    return report.sections.map((s) => ({
-        id: crypto.randomUUID(),
-        name: s.section_name,
-        margin_section: s.section_margin || 0,
-        discount: s.section_discount,
-        products: s.products.map((p) => {
-            // Reconstruct the original priceBase so that we can keep the true margin and discount
-            const marginMult = 1 + (p.margin || 0) / 100;
-            const discountMult = 1 - (p.discount || 0) / 100;
-            const denom = marginMult * discountMult;
-            const priceBase = denom === 0 ? 0 : p.price / denom;
-
-            return {
-                id: crypto.randomUUID(),
-                code: p.product_id,
-                brand: p.brand || '',
-                name: p.product_name,
-                units: p.quantity,
-                priceBase,
-                margin: p.margin || 0,
-                discount: p.discount || 0,
-                image: p.image_url ?? '',
-            };
-        }),
-    }));
-}
-
-function buildPayload(
-    title: string,
-    especificador: string,
-    consultor: string,
-    consultorPhone: string,
-    cashDiscount: number,
-    clientInfo: import('../../../types').ClientInfo,
-    sections: Section[],
-    calcSubtotal: (prods: Section['products'], disc: number) => number
-) {
-    return {
-        title,
-        especificador,
-        consultor,
-        consultorPhone,
-        cash_discount: cashDiscount,
-        client_info: clientInfo,
-        sections: sections.map((s) => ({
-            section_name: s.name,
-            section_margin: s.margin_section ?? 0,
-            section_discount: s.discount ?? 0,
-            products: s.products.map((p) => {
-                const price = p.priceBase * (1 + (p.margin || 0) / 100) * (1 - (p.discount || 0) / 100);
-                return {
-                    product_name: p.name,
-                    product_id: p.code || p.id,
-                    brand: p.brand || '',
-                    image_url: p.image ?? '',
-                    price,
-                    margin: p.margin ?? 0,
-                    discount: p.discount ?? 0,
-                    quantity: p.units,
-                    total: price * p.units,
-                };
-            }),
-        })),
-    };
-}
-
-// ─── Delete Modal ─────────────────────────────────────────────────────────────
-function DeleteModal({
-    reportTitle,
-    onClose,
-    onConfirm,
-    deleting,
-}: {
-    reportTitle: string;
-    onClose: () => void;
-    onConfirm: () => void;
-    deleting: boolean;
-}) {
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-200">
-                <div className="p-6 flex flex-col gap-5">
-                    <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto">
-                        <Trash2 size={22} className="text-red-500" />
-                    </div>
-                    <div className="text-center">
-                        <p className="font-black text-secondary text-base">Deletar relatório?</p>
-                        <p className="text-sm text-gray-400 mt-1 font-medium">{reportTitle}</p>
-                        <p className="text-xs text-gray-300 mt-1">Esta ação não pode ser desfeita.</p>
-                    </div>
-                    <div className="flex gap-3">
-                        <button onClick={onClose} className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-100 text-gray-500 font-black text-xs uppercase tracking-widest hover:border-gray-200 transition-all">
-                            Cancelar
-                        </button>
-                        <button
-                            onClick={onConfirm}
-                            disabled={deleting}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-500 text-white font-black text-xs uppercase tracking-widest hover:bg-red-600 transition-all disabled:opacity-50"
-                        >
-                            {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                            {deleting ? 'Deletando…' : 'Deletar'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-// ─── Field display (view mode) ────────────────────────────────────────────────
-function FieldDisplay({ label, value }: { label: string; value: string }) {
-    return (
-        <div className="flex flex-col gap-0.5">
-            <span className="text-[9px] uppercase font-black tracking-[0.35em] text-gray-400">{label}</span>
-            <span className="text-sm font-semibold text-secondary">{value || '—'}</span>
-        </div>
-    );
-}
+// ─── Helpers & Components Imported ──────────────────────────────────────────
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -251,7 +131,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
 
     const handleSave = async () => {
         if (!report) return;
-        const payload = buildPayload(reportTitle || report.title, especificador, consultor, consultorPhone, cashDiscount, clientInfo, sections, calculateSubtotal);
+        const payload = buildPayload(reportTitle || report.title, especificador, consultor, consultorPhone, cashDiscount, clientInfo, sections);
         try {
             await updateReport(report._id, payload);
             setReport(prev => prev ? { ...prev, title: payload.title, sections: payload.sections as SavedReport['sections'] } : prev);
@@ -359,10 +239,12 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
         <div className="min-h-screen bg-muted">
             {showDelete && (
                 <DeleteModal
+                    reportId={report._id}
                     reportTitle={report.title}
                     onClose={() => setShowDelete(false)}
-                    onConfirm={handleDelete}
-                    deleting={deleting}
+                    onDeleted={() => {}}
+                    handleDeleteExternally={handleDelete}
+                    externalDeleting={deleting}
                 />
             )}
 
@@ -405,10 +287,11 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                                     // Reset title to original
                                     setReportTitle(report.title);
                                     setSections(savedToFrontendSections(report));
+                                    window.location.reload();
                                 }}
-                                className="flex items-center gap-2 bg-gray-100 text-gray-600 font-black px-5 py-2.5 rounded-full text-xs uppercase tracking-widest hover:bg-gray-200 transition-all"
+                                className="flex cursor-pointer items-center gap-2 bg-gray-200 text-gray-600 font-black px-5 py-2.5 rounded-full text-xs uppercase tracking-widest hover:bg-gray-300 transition-all"
                             >
-                                <X size={14} /> Cancelar
+                                <EyeIcon size={14} /> Visualizar
                             </button>
                         )}
 
@@ -424,30 +307,23 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 </div>
 
                 {/* ── Title field ───────────────────────────────────── */}
-                <div className="bg-white rounded-xl border-2 border-gray-100 px-6 py-4 flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between gap-3">
-                        <label className="text-[9px] uppercase font-black tracking-[0.35em] text-gray-400">
-                            Título do Relatório
-                        </label>
-                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-300 flex items-center gap-1">
-                            {editMode ? <Pencil size={10} /> : <Eye size={10} />}
-                            {editMode ? 'Modo edição' : 'Somente leitura'}
+                {!editMode && (
+                    <div className="bg-white rounded-xl border-2 border-gray-100 px-6 py-4 flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between gap-3">
+                            <label className="text-[9px] uppercase font-black tracking-[0.35em] text-gray-400">
+                                Título do Relatório
+                            </label>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-gray-300 flex items-center gap-1">
+                                <Eye size={10} />
+                                Somente leitura
+                            </span>
+                        </div>
+                        <span className="text-secondary font-black text-lg">{report.title}</span>
+                        <span className="text-[10px] text-gray-300 font-medium">
+                            Criado em {new Date(report.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
                         </span>
                     </div>
-                    {editMode ? (
-                        <input
-                            type="text"
-                            value={reportTitle}
-                            onChange={(e) => setReportTitle(e.target.value.toUpperCase())}
-                            className="bg-transparent text-secondary font-semibold text-sm outline-none w-full"
-                        />
-                    ) : (
-                        <span className="text-secondary font-black text-lg">{report.title}</span>
-                    )}
-                    <span className="text-[10px] text-gray-300 font-medium">
-                        Criado em {new Date(report.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                    </span>
-                </div>
+                )}
 
                 {/* ── View Mode: Summary ────────────────────────────── */}
                 {!editMode && (
@@ -535,58 +411,25 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
 
                 {/* ── Edit Mode: Full Form ──────────────────────────── */}
                 {editMode && (
-                    <>
-                        <GeneralInfo data={{ especificador, consultor, consultorPhone }} onChange={{ setEspecificador, setConsultor, setConsultorPhone }} />
-                        <ClientInfoComp data={clientInfo} onChange={updateClientInfo} />
+                    <div className="min-h-screen bg-muted flex flex-col pt-10 px-4 md:px-0">
+                        <div className="container mx-auto">
 
-                        <div className="flex flex-col gap-8">
-                            {sections.map((section) => (
-                                <SectionCard
-                                    key={section.id}
-                                    section={section}
-                                    brands={brands}
-                                    loadingProductId={productLoading}
-                                    actions={{
-                                        updateSectionName,
-                                        removeSection,
-                                        updateProduct,
-                                        removeProduct,
-                                        addProduct,
-                                        updateSectionMargin,
-                                        updateSectionDiscount: (sid, discount) =>
-                                            setSections(sections.map(s => s.id === sid ? { ...s, discount } : s)),
-                                    }}
-                                    utils={{ calculateSubtotal }}
-                                    onProductCodeChange={handleProductCodeChange}
-                                />
-                            ))}
-
-                            <button
-                                onClick={addSection}
-                                className="bg-white border-2 border-dashed border-gray-200 p-10 rounded-xl flex flex-col items-center justify-center gap-3 text-gray-300 hover:border-primary hover:text-primary transition-all group hover:bg-primary/5"
-                            >
-                                <span className="font-black text-sm uppercase tracking-[0.2em]">+ Nova Seção</span>
-                            </button>
+                            <ReportForm
+                                initialReportId={report._id}
+                                initialTitle={reportTitle || report.title}
+                                hideHeader={true}
+                                initialState={{
+                                    especificador: report.especificador,
+                                    consultor: report.consultor,
+                                    consultorPhone: report.consultorPhone,
+                                    cashDiscount: report.cash_discount,
+                                    clientInfo: report.client_info,
+                                    sections: savedToFrontendSections(report)
+                                }}
+                            />
                         </div>
+                    </div>
 
-                        <FinalCashDiscount
-                            value={cashDiscount}
-                            onChange={setCashDiscount}
-                            economy={formatCurrency(subtotalBeforeCash * (cashDiscount / 100))}
-                        />
-
-                        <FloatingActionBar
-                            subtotalBeforeCash={subtotalBeforeCash}
-                            totalValue={totalValue}
-                            isGeneratingExcel={generatingExcel}
-                            isGeneratingPDF={generatingPDF}
-                            isSaving={saving}
-                            hasSections={sections.length > 0}
-                            onGenerateExcel={handleGenerateExcel}
-                            onGeneratePDF={handleGeneratePDF}
-                            onSave={handleSave}
-                        />
-                    </>
                 )}
             </div>
         </div>

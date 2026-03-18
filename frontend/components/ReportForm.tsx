@@ -44,10 +44,14 @@ function buildSectionsPayload(sections: Section[], calculateSubtotal: (prods: Se
 interface ReportFormProps {
     onSaveSuccess?: () => void;
     onSaveError?: () => void;
+    initialReportId?: string;
+    initialTitle?: string;
+    hideHeader?: boolean;
+    initialState?: any;
 }
 
-export default function ReportForm({ onSaveSuccess, onSaveError }: ReportFormProps = {}) {
-    const { state, actions, utils } = useReportState();
+export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId, initialTitle, hideHeader, initialState }: ReportFormProps = {}) {
+    const { state, actions, utils } = useReportState(initialState);
     const { brandNames: brands } = useBrands();
     const { saveReport, updateReport, saving } = useReportActions();
 
@@ -61,8 +65,8 @@ export default function ReportForm({ onSaveSuccess, onSaveError }: ReportFormPro
 
     const [generating, setGenerating] = useState(false);
     const [generatingExcel, setGeneratingExcel] = useState(false);
-    const [reportTitle, setReportTitle] = useState("");
-    const [savedReportId, setSavedReportId] = useState<string | null>(null);
+    const [reportTitle, setReportTitle] = useState(initialTitle || "");
+    const [savedReportId, setSavedReportId] = useState<string | null>(initialReportId || null);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
     const saveStatusTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -237,7 +241,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError }: ReportFormPro
 
     return (
         <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col gap-8 animate-in fade-in duration-700">
-            <PageHeader onClear={handleClear} />
+            {!hideHeader && <PageHeader onClear={handleClear} />}
 
             {/* Report Title */}
             <div className="bg-white rounded-xl border-2 border-gray-100 px-6 py-4 flex flex-col gap-1.5">

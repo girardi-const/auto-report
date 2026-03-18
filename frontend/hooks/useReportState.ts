@@ -2,18 +2,18 @@
 import { useState, useRef } from "react";
 import { Product, Section, ClientInfo } from "../types"; // Importe suas interfaces aqui
 
-export function useReportState() {
-    const [especificador, setEspecificador] = useState("");
-    const [contact, setContact] = useState("");
-    const [consultor, setConsultor] = useState("");
-    const [consultorPhone, setConsultorPhone] = useState("");
-    const [sections, setSections] = useState<Section[]>([]);
-    const [cashDiscount, setCashDiscount] = useState(0);
+export function useReportState(initialState?: any) {
+    const [especificador, setEspecificador] = useState(initialState?.especificador || "");
+    const [contact, setContact] = useState(initialState?.contact || "");
+    const [consultor, setConsultor] = useState(initialState?.consultor || "");
+    const [consultorPhone, setConsultorPhone] = useState(initialState?.consultorPhone || "");
+    const [sections, setSections] = useState<Section[]>(initialState?.sections || []);
+    const [cashDiscount, setCashDiscount] = useState(initialState?.cashDiscount || 0);
     const [loading, setLoading] = useState<string | null>(null);
     const timers = useRef<Record<string, NodeJS.Timeout>>({});
 
     // Client Info State
-    const [clientInfo, setClientInfo] = useState<ClientInfo>({
+    const [clientInfo, setClientInfo] = useState<ClientInfo>(initialState?.clientInfo || {
         name: "",
         telefone: "",
     });

@@ -118,7 +118,7 @@ export default function Header() {
                             <>
                                 <li>
                                     <Link href="/criar-produto" className="hover:text-primary transition-colors">
-                                        Produtos
+                                        Criar Produto
                                     </Link>
                                 </li>
                                 <li>

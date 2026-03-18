@@ -10,7 +10,11 @@ import { SavedReport } from '../../types';
 import { generateExcel } from '../../utils/excelExporter';
 import { pdf as generatePdf } from '@react-pdf/renderer';
 import { ReportPDFDocument } from '../../components/PDFDocument';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatDate } from '../../utils/formatters';
+import { calcReportTotal } from '../../utils/historicoHelpers';
+import { DeleteModal } from '../../components/HistoricoPage/DeleteModal';
+import { SkeletonRow } from '../../components/HistoricoPage/SkeletonRow';
+import { HistoricoFilters } from '../../components/HistoricoPage/HistoricoFilters';
 import { useUsers } from '../../hooks/useUsers';
 import {
     Search,
@@ -28,97 +32,7 @@ import {
     Calendar,
 } from 'lucide-react';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function calcReportTotal(report: SavedReport): number {
-    const sectionTotal = report.sections.reduce((acc, s) => {
-        const raw = s.products.reduce((a, p) => a + p.total, 0);
-        return acc + raw * (1 - (s.section_discount || 0) / 100);
-    }, 0);
-    return sectionTotal;
-}
-
-function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-    });
-}
-
-// ─── Delete Modal ─────────────────────────────────────────────────────────────
-interface DeleteModalProps {
-    report: SavedReport;
-    onClose: () => void;
-    onDeleted: () => void;
-}
-
-function DeleteConfirmModal({ report, onClose, onDeleted }: DeleteModalProps) {
-    const { deleteReport, deleting } = useReportActions();
-    const [error, setError] = useState('');
-
-    const handleDelete = async () => {
-        setError('');
-        try {
-            await deleteReport(report._id);
-            onDeleted();
-            onClose();
-        } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Erro ao deletar');
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-200">
-                <div className="p-6 flex flex-col gap-5">
-                    <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto">
-                        <Trash2 size={22} className="text-red-500" />
-                    </div>
-                    <div className="text-center">
-                        <p className="font-black text-secondary text-base">Deletar relatório?</p>
-                        <p className="text-sm text-gray-400 mt-1 font-medium">{report.title}</p>
-                        <p className="text-xs text-gray-300 mt-1">Esta ação não pode ser desfeita.</p>
-                    </div>
-
-                    {error && (
-                        <p className="text-xs text-red-500 font-medium bg-red-50 px-3 py-2 rounded-lg text-center">{error}</p>
-                    )}
-
-                    <div className="flex gap-3">
-                        <button
-                            onClick={onClose}
-                            className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-100 text-gray-500 font-black text-xs uppercase tracking-widest hover:border-gray-200 transition-all"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            onClick={handleDelete}
-                            disabled={deleting}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-500 text-white font-black text-xs uppercase tracking-widest hover:bg-red-600 transition-all disabled:opacity-50"
-                        >
-                            {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                            {deleting ? 'Deletando…' : 'Deletar'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-// ─── Skeleton ────────────────────────────────────────────────────────────────
-function SkeletonRow() {
-    return (
-        <tr className="border-b border-gray-100">
-            {Array.from({ length: 5 }).map((_, i) => (
-                <td key={i} className="px-6 py-4">
-                    <div className="h-4 rounded bg-gray-100 animate-pulse" style={{ width: [200, 100, 80, 100, 80][i] }} />
-                </td>
-            ))}
-        </tr>
-    );
-}
+// ─── Helpers & Components Imported ──────────────────────────────────────────
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ReportsPage() {
@@ -295,8 +209,9 @@ export default function ReportsPage() {
         <div className="min-h-screen bg-muted">
             {/* Delete Modal */}
             {deleteTarget && (
-                <DeleteConfirmModal
-                    report={deleteTarget}
+                <DeleteModal
+                    reportId={deleteTarget._id}
+                    reportTitle={deleteTarget.title}
                     onClose={() => setDeleteTarget(null)}
                     onDeleted={refetch}
                 />
@@ -335,68 +250,22 @@ export default function ReportsPage() {
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-12 flex flex-col gap-5">
                 {/* ── Filters ──────────────────────────────────────────── */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col sm:flex-row gap-3 items-center flex-wrap">
-                    {/* Search */}
-                    <div className="relative flex-1 min-w-[200px]">
-                        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
-                        <input
-                            id="report-search"
-                            type="text"
-                            value={rawSearch}
-                            onChange={handleSearchChange}
-                            placeholder="Buscar por título ou cliente…"
-                            className="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg border-2 border-gray-100 focus:border-primary outline-none transition-all font-medium text-gray-700 placeholder:text-gray-300"
-                        />
-                    </div>
-
-                    {/* Creator Filter (Admin) */}
-                    {isAdmin && users.length > 0 && (
-                        <div className="relative min-w-[200px]">
-                            <select
-                                value={creatorFilter}
-                                onChange={(e) => { setCreatorFilter(e.target.value); setPage(1); }}
-                                className="w-full px-4 py-2.5 text-sm rounded-lg border-2 border-gray-100 focus:border-primary outline-none transition-all font-medium text-gray-700 bg-white appearance-none"
-                            >
-                                <option value="">Todos os usuários</option>
-                                {users.map(u => (
-                                    <option key={u.uid} value={u.name || (u.email ?? u.uid)}>{u.name || u.email}</option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-
-                    {/* Date From */}
-                    <div className="relative">
-                        <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
-                        <input
-                            type="date"
-                            value={dateFrom}
-                            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-                            className="pl-9 pr-3 py-2.5 text-sm rounded-lg border-2 border-gray-100 focus:border-primary outline-none transition-all font-medium text-gray-700 bg-white"
-                        />
-                    </div>
-
-                    {/* Date To */}
-                    <div className="relative">
-                        <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
-                        <input
-                            type="date"
-                            value={dateTo}
-                            onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-                            className="pl-9 pr-3 py-2.5 text-sm rounded-lg border-2 border-gray-100 focus:border-primary outline-none transition-all font-medium text-gray-700 bg-white"
-                        />
-                    </div>
-
-                    {/* Clear */}
-                    {hasFilters && (
-                        <button
-                            onClick={clearFilters}
-                            className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-primary transition-colors whitespace-nowrap px-2"
-                        >
-                            <X size={14} /> Limpar
-                        </button>
-                    )}
-                </div>
+                <HistoricoFilters
+                    rawSearch={rawSearch}
+                    setRawSearch={setRawSearch}
+                    handleSearchChange={handleSearchChange}
+                    creatorFilter={creatorFilter}
+                    setCreatorFilter={setCreatorFilter}
+                    dateFrom={dateFrom}
+                    setDateFrom={setDateFrom}
+                    dateTo={dateTo}
+                    setDateTo={setDateTo}
+                    clearFilters={clearFilters}
+                    hasFilters={hasFilters}
+                    isAdmin={!!isAdmin}
+                    users={users}
+                    setPage={setPage}
+                />
 
                 {/* ── Error ────────────────────────────────────────────── */}
                 {error && (

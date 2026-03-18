@@ -35,6 +35,10 @@ const nextConfig: NextConfig = {
         source: '/api/dexco-images/:path*',
         destination: 'https://dexcoprod.vteximg.com.br/:path*',
       },
+      {
+        source: '/api/cloudinary-images/:path*',
+        destination: 'https://res.cloudinary.com/:path*',
+      },
     ];
   },
 };

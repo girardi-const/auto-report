@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ProductService } from '../services/productService';
 import { createSuccessResponse, createErrorResponse } from '../types/apiResponse';
-import { ProductQuerySchema, CreateProductSchema, CreateProductWithImageSchema, UpdateProductSchema } from '../validators/productValidator';
+import { ProductQuerySchema, CreateProductSchema, CreateProductWithImageSchema, UpdateProductSchema, UpdateProductPriceSchema } from '../validators/productValidator';
 
 /**
  * GET /api/v1/products/:code
@@ -145,6 +145,30 @@ export const updateProductImage = async (
         }
 
         const product = await ProductService.updateProduct(req.params.id, {}, req.file.buffer);
+        res.json(createSuccessResponse(product));
+    } catch (error: any) {
+        if (error.message === 'Produto não encontrado') {
+            res.status(404).json(
+                createErrorResponse('PRODUCT_NOT_FOUND', error.message)
+            );
+            return;
+        }
+        next(error);
+    }
+};
+
+/**
+ * PATCH /api/v1/products/:id/price
+ * Update only a product's base price. Authenticated users only.
+ */
+export const updateProductPrice = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const { base_price } = UpdateProductPriceSchema.parse(req.body);
+        const product = await ProductService.updateProduct(req.params.id, { base_price });
         res.json(createSuccessResponse(product));
     } catch (error: any) {
         if (error.message === 'Produto não encontrado') {

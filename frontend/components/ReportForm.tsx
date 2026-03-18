@@ -110,12 +110,13 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
                         ...s,
                         products: s.products.map(p => {
                             if (p.id !== productId || p.code !== code) return p;
-                            if (!match) return { ...p, name: "Produto não encontrado", priceBase: 0, image: "", dbId: undefined };
+                            if (!match) return { ...p, name: "Produto não encontrado", priceBase: 0, originalPriceBase: 0, image: "", dbId: undefined };
                             return {
                                 ...p,
                                 dbId: match._id,
                                 name: match.description,
                                 priceBase: match.base_price,
+                                originalPriceBase: match.base_price,
                                 brand: match.brand_name,
                                 image: match.imageurl ?? "",
                             };
@@ -146,6 +147,8 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
             products: groupedProducts
         };
     });
+
+    console.log(sections)
 
     const subtotalBeforeCash = validSections.reduce((acc, s) => acc + calculateSubtotal(s.products, s.discount), 0);
     const totalValue = subtotalBeforeCash * (1 - (cashDiscount || 0) / 100);

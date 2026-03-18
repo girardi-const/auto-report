@@ -13,6 +13,7 @@ export interface Product {
     margin: number;
     discount: number;
     priceBase: number;
+    originalPriceBase?: number;
     image: string;
 }
 

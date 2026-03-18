@@ -49,8 +49,8 @@ export function useReportState(initialState?: any) {
     };
 
     const updateSectionMargin = (id: string, margin: number) => {
-        setSections(prev => prev.map(s => s.id === id ? { 
-            ...s, 
+        setSections(prev => prev.map(s => s.id === id ? {
+            ...s,
             margin_section: margin,
             products: s.products.map(p => ({ ...p, margin }))
         } : s));
@@ -66,6 +66,7 @@ export function useReportState(initialState?: any) {
             margin: 0,
             discount: 0,
             priceBase: 0,
+            originalPriceBase: 0,
             image: "",
         };
         setSections(prev => prev.map(s =>

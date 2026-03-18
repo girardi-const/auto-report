@@ -9,6 +9,7 @@ import {
     updateProduct,
     deleteProduct,
     updateProductImage,
+    updateProductPrice,
 } from '../controllers/productController';
 
 const router = Router();
@@ -31,6 +32,7 @@ router.post('/', requireAdmin, createProduct);
 router.post('/upload', requireAdmin, upload.single('image'), createProductWithImage);
 router.put('/:id', requireAdmin, upload.single('image'), updateProduct);
 router.patch('/:id/image', requireAuth, upload.single('image'), updateProductImage);
+router.patch('/:id/price', requireAuth, updateProductPrice);
 router.delete('/:id', requireAdmin, deleteProduct);
 
 export default router;

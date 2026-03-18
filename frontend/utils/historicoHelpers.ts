@@ -28,6 +28,7 @@ export function savedToFrontendSections(report: SavedReport): Section[] {
                 name: p.product_name,
                 units: p.quantity,
                 priceBase,
+                originalPriceBase: priceBase,
                 margin: p.margin || 0,
                 discount: p.discount || 0,
                 image: p.image_url ?? '',

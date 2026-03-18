@@ -33,6 +33,13 @@ export const UpdateProductSchema = z.object({
 
 export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;
 
+// ── Update Product Price only ──────────────────────────────────────────────
+export const UpdateProductPriceSchema = z.object({
+    base_price: z.number().nonnegative('Preço base não pode ser negativo'),
+});
+
+export type UpdateProductPriceInput = z.infer<typeof UpdateProductPriceSchema>;
+
 // ── Create Product with Image (FormData validation helper) ─────────────────
 // Note: Since FormData comes as strings, we parse them appropriately
 export const CreateProductWithImageSchema = z.object({

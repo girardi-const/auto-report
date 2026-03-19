@@ -11,38 +11,47 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "arquivos.mercos.com",
-        pathname: "/**"
+        pathname: "/**",
       },
       {
         protocol: "https",
         hostname: "dexcoprod.vteximg.com.br",
-        pathname: "/**"
+        pathname: "/**",
       },
       {
         protocol: "https",
         hostname: "deca.com.br",
-        pathname: "/**"
+        pathname: "/**",
       },
       {
         protocol: "https",
         hostname: "produtos.deca.com.br",
-        pathname: "/**"
-      }
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "docolinstitucional.vteximg.com.br",
+        pathname: "/**",
+      },
     ],
   },
   async rewrites() {
     return [
       {
-        source: '/api/mercos-images/:path*',
-        destination: 'https://arquivos.mercos.com/:path*',
+        source: "/api/mercos-images/:path*",
+        destination: "https://arquivos.mercos.com/:path*",
       },
       {
-        source: '/api/dexco-images/:path*',
-        destination: 'https://dexcoprod.vteximg.com.br/:path*',
+        source: "/api/dexco-images/:path*",
+        destination: "https://dexcoprod.vteximg.com.br/:path*",
       },
       {
-        source: '/api/cloudinary-images/:path*',
-        destination: 'https://res.cloudinary.com/:path*',
+        source: "/api/cloudinary-images/:path*",
+        destination: "https://res.cloudinary.com/:path*",
+      },
+      {
+        source: "/api/docol-images/:path*",
+        destination: "https://docolinstitucional.vteximg.com.br/:path*",
       },
     ];
   },

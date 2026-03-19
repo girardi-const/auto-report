@@ -22,6 +22,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "deca.com.br",
         pathname: "/**"
+      },
+      {
+        protocol: "https",
+        hostname: "produtos.deca.com.br",
+        pathname: "/**"
       }
     ],
   },

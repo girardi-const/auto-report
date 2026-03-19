@@ -3,13 +3,14 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2, UploadCloud, CheckCircle2, PlayCircle, StopCircle } from 'lucide-react';
+import { Loader2, UploadCloud, CheckCircle2, PlayCircle, StopCircle, Table2, Code2, PackageSearch } from 'lucide-react';
 
 interface DecaProduct {
     code: string;
     product_name: string;
     price: number;
-    image_url: string | null;
+    image_url?: string | null; // legacy field name
+    image?: string | null;     // field name used in merged_products.json
     brand: string;
 }
 
@@ -17,11 +18,14 @@ export default function SyncDecaPage() {
     const { getIdToken } = useAuth();
     const [fileOptions, setFileOptions] = useState<File | null>(null);
     const [products, setProducts] = useState<DecaProduct[]>([]);
+    const [previewMode, setPreviewMode] = useState<'table' | 'raw'>('table');
 
     const [running, setRunning] = useState(false);
     const [progress, setProgress] = useState(0);
     const [stats, setStats] = useState({ created: 0, updated: 0, failed: 0 });
     const cancelRef = useRef(false);
+
+    const PREVIEW_LIMIT = 100;
 
     const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
@@ -79,15 +83,16 @@ export default function SyncDecaPage() {
                         f++;
                     }
                 } else if (getRes.status === 404) {
-                    const isValidUrl = item.image_url && item.image_url.trim().length > 0;
+                    const imgUrl = (item.image_url ?? item.image ?? '').trim();
+                    const isValidUrl = imgUrl.length > 0;
                     const requestBody: any = {
                         product_code: item.code,
                         description: item.product_name,
                         base_price: item.price,
-                        brand_name: 'DECA'
+                        brand_name: item.brand || 'DECA'
                     };
                     if (isValidUrl) {
-                       requestBody.imageurl = item.image_url!.trim();
+                       requestBody.imageurl = imgUrl;
                     }
 
                     const postRes = await fetch(`${API}/products`, {
@@ -175,6 +180,115 @@ export default function SyncDecaPage() {
                     disabled={running}
                 />
             </div>
+
+            {/* JSON Preview */}
+            {products.length > 0 && (
+                <div className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
+                        <div className="flex items-center gap-3">
+                            <PackageSearch size={20} className="text-primary" />
+                            <span className="font-semibold text-gray-700">Preview do JSON</span>
+                            <span className="bg-primary/10 text-primary text-xs font-bold px-2.5 py-1 rounded-full">
+                                {products.length} produtos
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-1 bg-gray-200 p-1 rounded-lg">
+                            <button
+                                onClick={() => setPreviewMode('table')}
+                                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md transition-all ${
+                                    previewMode === 'table'
+                                        ? 'bg-white text-primary shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                            >
+                                <Table2 size={14} /> Tabela
+                            </button>
+                            <button
+                                onClick={() => setPreviewMode('raw')}
+                                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md transition-all ${
+                                    previewMode === 'raw'
+                                        ? 'bg-white text-primary shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                            >
+                                <Code2 size={14} /> JSON
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Table View */}
+                    {previewMode === 'table' && (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-gray-50 border-b border-gray-100">
+                                        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider w-8">#</th>
+                                        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Código</th>
+                                        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Nome</th>
+                                        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Marca</th>
+                                        <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Preço</th>
+                                        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Imagem</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {products.slice(0, PREVIEW_LIMIT).map((p, i) => (
+                                        <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/70 transition-colors">
+                                            <td className="px-4 py-2.5 text-gray-400 text-xs">{i + 1}</td>
+                                            <td className="px-4 py-2.5">
+                                                <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-700">{p.code}</span>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-gray-700 max-w-xs truncate" title={p.product_name}>{p.product_name}</td>
+                                            <td className="px-4 py-2.5">
+                                                <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{p.brand || 'DECA'}</span>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-right font-semibold text-gray-800">
+                                                {p.price != null
+                                                    ? `R$ ${Number(p.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                                                    : <span className="text-gray-400 text-xs">—</span>}
+                                            </td>
+                                            <td className="px-4 py-2.5">
+                                                {(() => { const img = p.image_url ?? p.image; return img ? (
+                                                    <a
+                                                        href={img}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-primary text-xs underline truncate block max-w-[180px]"
+                                                        title={img}
+                                                    >
+                                                        {img}
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-gray-300 text-xs">sem imagem</span>
+                                                ); })()}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {products.length > PREVIEW_LIMIT && (
+                                <p className="text-center text-xs text-gray-400 py-3 border-t border-gray-100">
+                                    Mostrando {PREVIEW_LIMIT} de {products.length} produtos. Todos serão processados na sincronização.
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Raw JSON View */}
+                    {previewMode === 'raw' && (
+                        <div className="overflow-auto max-h-[400px]">
+                            <pre className="text-xs text-gray-700 bg-gray-950 text-green-400 p-5 leading-relaxed">
+                                {JSON.stringify(products.slice(0, PREVIEW_LIMIT), null, 2)}
+                            </pre>
+                            {products.length > PREVIEW_LIMIT && (
+                                <p className="text-center text-xs text-gray-400 py-3 border-t border-gray-800 bg-gray-950">
+                                    Mostrando {PREVIEW_LIMIT} de {products.length} itens
+                                </p>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {products.length > 0 && (
                 <div className="bg-white rounded-xl shadow p-6 border border-gray-100 flex flex-col items-center">

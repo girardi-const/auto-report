@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
 
@@ -42,6 +43,7 @@ async function fetchBrandsOnce(force: boolean = false): Promise<Brand[]> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function useBrands() {
+    const { getIdToken } = useAuth();
     const [brands, setBrands] = useState<Brand[]>(cachedBrands ?? []);
     const [loading, setLoading] = useState(cachedBrands === null);
     const [error, setError] = useState<Error | null>(null);
@@ -69,11 +71,49 @@ export function useBrands() {
 
     const brandNames = brands.map((b) => b.brand_name);
 
+    const createBrand = async (brandName: string): Promise<Brand> => {
+        try {
+            const token = await getIdToken();
+            const response = await fetch(`${API_BASE_URL}/brands`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ brand_name: brandName }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+            }
+
+            const json = await response.json();
+            const newBrand: Brand = json.data;
+
+            // Update cache and state
+            if (cachedBrands) {
+                cachedBrands = [...cachedBrands, newBrand].sort((a, b) => 
+                    a.brand_name.localeCompare(b.brand_name)
+                );
+            } else {
+                cachedBrands = [newBrand];
+            }
+            setBrands(cachedBrands);
+
+            return newBrand;
+        } catch (err) {
+            console.error("Failed to create brand:", err);
+            throw err;
+        }
+    };
+
     return { 
         brands, 
         brandNames, 
         loading, 
         error, 
-        refreshBrands: () => fetchBrands(true) 
+        refreshBrands: () => fetchBrands(true),
+        createBrand 
     };
 }

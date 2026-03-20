@@ -33,6 +33,16 @@ const nextConfig: NextConfig = {
         hostname: "docolinstitucional.vteximg.com.br",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "censi-site-resources.s3.sa-east-1.amazonaws.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "s3.amazonaws.com",
+        pathname: "/assets.tramontina.com.br/**",
+      },
     ],
   },
   async rewrites() {
@@ -52,6 +62,14 @@ const nextConfig: NextConfig = {
       {
         source: "/api/docol-images/:path*",
         destination: "https://docolinstitucional.vteximg.com.br/:path*",
+      },
+      {
+        source: "/api/censi-images/:path*",
+        destination: "https://censi-site-resources.s3.sa-east-1.amazonaws.com/:path*",
+      },
+      {
+        source: "/api/tramontina-images/:path*",
+        destination: "https://s3.amazonaws.com/assets.tramontina.com.br/:path*",
       },
     ];
   },

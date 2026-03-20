@@ -16,19 +16,19 @@ export function ProductTable({
     return (
         <div className="p-0">
             <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
+                <table className="w-full min-w-[1100px] text-left text-sm">
                     <thead className="bg-gray-50 text-gray-400 font-black uppercase text-[9px] tracking-[0.2em] border-b border-gray-100">
                         <tr>
-                            <th className="px-3 py-4">Código</th>
-                            <th className="px-8 py-4">Imagem</th>
-                            <th className="px-8 py-4">Marca</th>
-                            <th className="px-8 py-4">Produto</th>
-                            <th className="px-4 py-4 w-28">Preço Un.</th>
-                            <th className="px-4 py-4 w-24">Und.</th>
-                            <th className="px-4 py-4 w-24">Margem(%)</th>
-                            <th className="px-4 py-4 w-24">Desc(%)</th>
-                            <th className="px-8 py-4 text-right">Subtotal</th>
-                            <th className="px-8 py-4 w-12 text-center"></th>
+                            <th className="px-3 py-4 w-32">Código</th>
+                            <th className="px-4 py-4 w-24 text-center">Imagem</th>
+                            <th className="px-4 py-4 w-40">Marca</th>
+                            <th className="px-4 py-4 w-64">Produto</th>
+                            <th className="px-4 py-4 w-28 text-center">Preço Un.</th>
+                            <th className="px-4 py-4 w-24 text-center">Und.</th>
+                            <th className="px-4 py-4 w-24 text-center">Margem(%)</th>
+                            <th className="px-4 py-4 w-24 text-center">Desc(%)</th>
+                            <th className="px-4 py-4 w-32 text-right">Subtotal</th>
+                            <th className="px-4 py-4 w-12 text-center"></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">

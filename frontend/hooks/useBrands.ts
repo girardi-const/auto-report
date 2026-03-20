@@ -14,11 +14,11 @@ export interface Brand {
 let cachedBrands: Brand[] | null = null;
 let fetchPromise: Promise<Brand[]> | null = null;
 
-async function fetchBrandsOnce(): Promise<Brand[]> {
-    if (cachedBrands) return cachedBrands;
+async function fetchBrandsOnce(force: boolean = false): Promise<Brand[]> {
+    if (cachedBrands && !force) return cachedBrands;
 
     // Deduplicate concurrent fetches (React Strict-Mode double-invoke safe)
-    if (!fetchPromise) {
+    if (!fetchPromise || force) {
         fetchPromise = fetch(`${API_BASE_URL}/brands`)
             .then((res) => {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -46,24 +46,34 @@ export function useBrands() {
     const [loading, setLoading] = useState(cachedBrands === null);
     const [error, setError] = useState<Error | null>(null);
 
-    useEffect(() => {
-        if (cachedBrands) {
+    const fetchBrands = (force: boolean = false) => {
+        if (!force && cachedBrands) {
             setBrands(cachedBrands);
             setLoading(false);
             return;
         }
 
         setLoading(true);
-        fetchBrandsOnce()
+        fetchBrandsOnce(force)
             .then(setBrands)
             .catch((err) => {
                 console.error("Failed to fetch brands:", err);
                 setError(err instanceof Error ? err : new Error("Failed to fetch brands"));
             })
             .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        fetchBrands();
     }, []);
 
     const brandNames = brands.map((b) => b.brand_name);
 
-    return { brands, brandNames, loading, error };
+    return { 
+        brands, 
+        brandNames, 
+        loading, 
+        error, 
+        refreshBrands: () => fetchBrands(true) 
+    };
 }

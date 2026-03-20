@@ -37,6 +37,12 @@ export function ProductRow({
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [localUnits, setLocalUnits] = useState(product.units.toString());
+    const [isUnitsFocused, setIsUnitsFocused] = useState(false);
+    const [localMargin, setLocalMargin] = useState(product.margin.toString());
+    const [isMarginFocused, setIsMarginFocused] = useState(false);
+    const [localDiscount, setLocalDiscount] = useState(product.discount.toString());
+    const [isDiscountFocused, setIsDiscountFocused] = useState(false);
 
     const handleSearchSelect = (catalogProduct: CatalogProduct) => {
         onCodeChange(catalogProduct.product_code);
@@ -47,6 +53,51 @@ export function ProductRow({
             setLocalPriceText(product.priceBase.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
         }
     }, [product.priceBase, isFocused]);
+
+    useEffect(() => {
+        if (!isUnitsFocused) {
+            setLocalUnits(product.units.toString());
+        }
+    }, [product.units, isUnitsFocused]);
+
+    const handleUnitsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value.replace(/\D/g, ""); // Apenas números
+        setLocalUnits(val);
+        const numeric = parseInt(val, 10);
+        if (!isNaN(numeric) && numeric > 0) {
+            onUpdate({ units: numeric });
+        }
+    };
+
+    useEffect(() => {
+        if (!isMarginFocused) {
+            setLocalMargin(product.margin.toString());
+        }
+    }, [product.margin, isMarginFocused]);
+
+    const handleMarginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value.replace(/[^0-9.-]/g, ""); // Permite números, ponto decimal e sinal de menos
+        setLocalMargin(val);
+        const numeric = parseFloat(val);
+        if (!isNaN(numeric)) {
+            onUpdate({ margin: numeric });
+        }
+    };
+
+    useEffect(() => {
+        if (!isDiscountFocused) {
+            setLocalDiscount(product.discount.toString());
+        }
+    }, [product.discount, isDiscountFocused]);
+
+    const handleDiscountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value.replace(/[^0-9.-]/g, "");
+        setLocalDiscount(val);
+        const numeric = parseFloat(val);
+        if (!isNaN(numeric)) {
+            onUpdate({ discount: numeric });
+        }
+    };
 
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const formatted = formatPriceInput(e.target.value);
@@ -177,7 +228,7 @@ export function ProductRow({
                     </div>
                 </div>
             </td>
-            <td className="px-8 py-4">
+            <td className="px-4 py-4 text-center">
                 <div className="relative group/image w-16 h-16 rounded-lg overflow-hidden border-2 border-dashed border-gray-200 hover:border-primary transition-colors flex items-center justify-center bg-gray-50">
                     {isUploadingImage ? (
                         <Loader2 size={24} className="animate-spin text-primary" />
@@ -202,11 +253,11 @@ export function ProductRow({
                     )}
                 </div>
             </td>
-            <td className="px-8 py-4">
+            <td className="px-4 py-4">
                 <select
                     value={product.brand}
                     onChange={(e) => onUpdate({ brand: e.target.value })}
-                    className="w-full bg-transparent outline-none font-bold text-xs border-2 border-gray-100 rounded-lg px-3 py-2 focus:border-primary focus:bg-white transition-all appearance-none cursor-pointer"
+                    className="w-full bg-transparent outline-none font-bold text-xs border-2 border-gray-100 rounded-lg px-2 py-2 focus:border-primary focus:bg-white transition-all appearance-none cursor-pointer"
                 >
                     <option value="">Selecione a Marca</option>
                     {brands.map((brand) => (
@@ -214,7 +265,7 @@ export function ProductRow({
                     ))}
                 </select>
             </td>
-            <td className="px-8 py-4">
+            <td className="px-4 py-4">
                 <span className={`${product.priceBase === 0 ? "text-gray-300" : "text-gray-500"} italic text-[11px] font-medium leading-tight block whitespace-normal break-words max-w-[250px]`}>
                     {product.name}
                 </span>
@@ -249,34 +300,63 @@ export function ProductRow({
             </td>
             <td className="px-4 py-4">
                 <input
-                    type="number"
-                    value={product.units}
-                    onChange={(e) => onUpdate({ units: Math.max(1, Number(e.target.value)) })}
+                    type="text"
+                    inputMode="numeric"
+                    value={localUnits}
+                    onChange={handleUnitsChange}
+                    onFocus={() => setIsUnitsFocused(true)}
+                    onBlur={() => {
+                        setIsUnitsFocused(false);
+                        if (!localUnits || parseInt(localUnits, 10) < 1) {
+                            setLocalUnits("1");
+                            onUpdate({ units: 1 });
+                        }
+                    }}
+                    className="w-full bg-transparent outline-none font-black border-2 border-gray-100 rounded-lg px-4 py-2 focus:border-primary focus:bg-white transition-all text-center text-xs"
+                />
+            </td>
+            <td className="px-4 py-4">
+                <input
+                    type="text"
+                    inputMode="decimal"
+                    value={localMargin}
+                    onChange={handleMarginChange}
+                    onFocus={() => setIsMarginFocused(true)}
+                    onBlur={() => {
+                        setIsMarginFocused(false);
+                        if (!localMargin || isNaN(parseFloat(localMargin))) {
+                            const defaultVal = "0";
+                            setLocalMargin(defaultVal);
+                            onUpdate({ margin: 0 });
+                        }
+                    }}
                     className="w-full bg-transparent outline-none font-black border-2 border-gray-100 rounded-lg px-2 py-2 focus:border-primary focus:bg-white transition-all text-center text-xs"
                 />
             </td>
             <td className="px-4 py-4">
                 <input
-                    type="number"
-                    value={product.margin}
-                    onChange={(e) => onUpdate({ margin: Number(e.target.value) })}
-                    className="w-full bg-transparent outline-none font-black border-2 border-gray-100 rounded-lg px-2 py-2 focus:border-primary focus:bg-white transition-all text-center text-xs"
-                />
-            </td>
-            <td className="px-4 py-4">
-                <input
-                    type="number"
-                    value={product.discount}
-                    onChange={(e) => onUpdate({ discount: Number(e.target.value) })}
+                    type="text"
+                    inputMode="decimal"
+                    value={localDiscount}
+                    onChange={handleDiscountChange}
+                    onFocus={() => setIsDiscountFocused(true)}
+                    onBlur={() => {
+                        setIsDiscountFocused(false);
+                        if (!localDiscount || isNaN(parseFloat(localDiscount))) {
+                            const defaultVal = "0";
+                            setLocalDiscount(defaultVal);
+                            onUpdate({ discount: 0 });
+                        }
+                    }}
                     className="w-full bg-transparent outline-none font-black border-2 border-gray-100 rounded-lg px-2 py-2 focus:border-primary focus:bg-white transition-all text-center text-xs text-primary"
                 />
             </td>
-            <td className="px-8 py-4 text-right">
+            <td className="px-4 py-4 text-right">
                 <span className="font-black text-secondary text-sm">
                     {formatCurrency(subtotal)}
                 </span>
             </td>
-            <td className="px-8 py-4 text-center">
+            <td className="px-4 py-4 text-center">
                 <button
                     onClick={onRemove}
                     className="text-red-400 hover:text-red-600 transition-all opacity-40 group-hover:opacity-100"

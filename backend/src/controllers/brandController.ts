@@ -1,12 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import { Brand } from '../models/Brand';
+import { Product } from '../models/Product';
 import { createSuccessResponse } from '../types/apiResponse';
 
 // ─── Server-side in-memory cache (shared across ALL users) ────────────────
 // The first request fetches from MongoDB; subsequent requests within the TTL
 // are served from memory. All users benefit from a single cached result.
+interface BrandWithCount {
+    _id: string;
+    brand_name: string;
+    createdAt: Date;
+    productCount: number;
+}
+
 interface BrandCache {
-    data: InstanceType<typeof Brand>[];
+    data: BrandWithCount[];
     expiresAt: number;
 }
 
@@ -20,7 +28,7 @@ function invalidateBrandsCache() {
 
 /**
  * GET /api/v1/brands
- * List all brands, sorted alphabetically.
+ * List all brands with product counts, sorted alphabetically.
  * Results are cached server-side for 5 minutes.
  */
 export const listBrands = async (
@@ -38,7 +46,30 @@ export const listBrands = async (
         }
 
         console.log('[CACHE] 🔴 brands — MISS — querying MongoDB...');
-        const brands = await Brand.find().sort({ brand_name: 1 });
+        const brands = await Brand.aggregate([
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: 'brand_name',
+                    foreignField: 'brand_name',
+                    as: 'products',
+                },
+            },
+            {
+                $addFields: {
+                    productCount: { $size: '$products' },
+                },
+            },
+            {
+                $project: {
+                    brand_name: 1,
+                    createdAt: 1,
+                    productCount: 1,
+                },
+            },
+            { $sort: { brand_name: 1 } },
+        ]);
+
         brandsCache = { data: brands, expiresAt: now + BRAND_CACHE_TTL_MS };
         res.json(createSuccessResponse(brands));
     } catch (error) {
@@ -60,6 +91,39 @@ export const createBrand = async (
         await brand.save();
         invalidateBrandsCache(); // keep cache fresh
         res.status(201).json(createSuccessResponse(brand));
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * DELETE /api/v1/brands/:id
+ * Delete a single brand and all products with that brand_name. Admin only.
+ */
+export const deleteBrandById = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const brand = await Brand.findById(req.params.id);
+        if (!brand) {
+            res.status(404).json({
+                success: false,
+                error: { message: 'Marca não encontrada' },
+            });
+            return;
+        }
+
+        // Cascade: delete all products with this brand
+        const productResult = await Product.deleteMany({ brand_name: brand.brand_name });
+        await Brand.findByIdAndDelete(req.params.id);
+        invalidateBrandsCache();
+
+        res.json(createSuccessResponse({
+            deletedBrand: brand.brand_name,
+            deletedProductsCount: productResult.deletedCount,
+        }));
     } catch (error) {
         next(error);
     }

@@ -35,8 +35,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // Read custom claims to determine admin status
                 const tokenResult = await firebaseUser.getIdTokenResult();
                 setIsAdmin(tokenResult.claims.admin === true);
+
+                // Set session cookie so the middleware can enforce auth server-side
+                document.cookie = '__session=1; path=/; max-age=604800; SameSite=Lax';
             } else {
                 setIsAdmin(false);
+
+                // Clear session cookie
+                document.cookie = '__session=; path=/; max-age=0';
             }
 
             setLoading(false);

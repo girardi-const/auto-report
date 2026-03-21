@@ -5,7 +5,7 @@ import { useMongoUser } from "@/hooks/useMongoUser";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
-import { FileText, Database, History, UserPlus, PackagePlus, UploadCloud } from "lucide-react";
+import { FileText, Database, History, UserPlus, PackagePlus, UploadCloud, Tag } from "lucide-react";
 import NameModal from "@/components/NameModal";
 
 export default function Home() {
@@ -68,12 +68,20 @@ export default function Home() {
       delay: "-3s"
     });
     cards.push({
+      href: "/marcas",
+      title: "Marcas",
+      description: "Visualize e gerencie as marcas cadastradas no sistema.",
+      icon: Tag,
+      glowColor: "#14b8a6", // teal-500
+      delay: "-4s"
+    });
+    cards.push({
       href: "/usuarios",
       title: "Usuários",
       description: "Gerencie o acesso e permissões de usuários do sistema.",
       icon: UserPlus,
       glowColor: "#f59e0b", // amber-500
-      delay: "-4s"
+      delay: "-5s"
     });
     cards.push({
       href: "/admin/importar",
@@ -81,7 +89,7 @@ export default function Home() {
       description: "Faça upload de planilhas para cadastrar múltiplos produtos de uma vez.",
       icon: UploadCloud,
       glowColor: "#ef4444", // red-500
-      delay: "-5s"
+      delay: "-6s"
     });
   }
 

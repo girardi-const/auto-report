@@ -6,6 +6,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/a
 export interface Brand {
     _id: string;
     brand_name: string;
+    productCount?: number;
 }
 
 // ─── Client-side module-level cache (per browser session) ─────────────────
@@ -108,12 +109,43 @@ export function useBrands() {
         }
     };
 
+    const deleteBrand = async (brandId: string): Promise<{ deletedBrand: string; deletedProductsCount: number }> => {
+        try {
+            const token = await getIdToken();
+            const response = await fetch(`${API_BASE_URL}/brands/${brandId}`, {
+                method: "DELETE",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+            }
+
+            const json = await response.json();
+
+            // Update cache and state
+            if (cachedBrands) {
+                cachedBrands = cachedBrands.filter((b) => b._id !== brandId);
+            }
+            setBrands(cachedBrands ?? []);
+
+            return json.data;
+        } catch (err) {
+            console.error("Failed to delete brand:", err);
+            throw err;
+        }
+    };
+
     return { 
         brands, 
         brandNames, 
         loading, 
         error, 
         refreshBrands: () => fetchBrands(true),
-        createBrand 
+        createBrand,
+        deleteBrand 
     };
 }

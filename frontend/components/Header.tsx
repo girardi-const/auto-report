@@ -134,6 +134,11 @@ export default function Header() {
                             </>
                         )}
                         <li>
+                            <Link href="/marcas" className="hover:text-primary transition-colors">
+                                Marcas
+                            </Link>
+                        </li>
+                        <li>
                             <Link href="/catalogo" className="hover:text-primary transition-colors">
                                 Catálogo
                             </Link>

@@ -54,7 +54,7 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
             try {
                 setIsLoading(true);
                 const token = await getIdToken();
-                const url = `${API_URL}/products?search=${encodeURIComponent(term.trim())}&limit=12&sortBy=updatedAt&sortOrder=desc`;
+                const url = `${API_URL}/products?search=${encodeURIComponent(term.trim())}&limit=18&sortBy=updatedAt&sortOrder=desc`;
                 const res = await fetch(url, {
                     headers: { Authorization: `Bearer ${token}` },
                 });

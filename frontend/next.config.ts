@@ -41,7 +41,27 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "s3.amazonaws.com",
-        pathname: "/assets.tramontina.com.br/**",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "assets.tramontina.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "www.rinnai.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.vnda.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "www.komeco.com.br",
+        pathname: "/**",
       },
     ],
   },
@@ -70,6 +90,18 @@ const nextConfig: NextConfig = {
       {
         source: "/api/tramontina-images/:path*",
         destination: "https://s3.amazonaws.com/assets.tramontina.com.br/:path*",
+      },
+      {
+        source: "/api/rinnai-images/:path*",
+        destination: "https://www.rinnai.com.br/:path*",
+      },
+      {
+        source: "/api/immersi-images/:path*",
+        destination: "https://cdn.vnda.com.br/:path*",
+      },
+      {
+        source: "/api/komeco-images/:path*",
+        destination: "https://www.komeco.com.br/:path*",
       },
     ];
   },

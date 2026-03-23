@@ -8,11 +8,16 @@ import { Loader2, UploadCloud, CheckCircle2, PlayCircle, StopCircle, Table2, Cod
 
 interface DecaProduct {
     code: string;
-    product_name: string;
+    name: string;
     price: number;
-    image_url?: string | null; // legacy field name
+    image?: string | null; // legacy field name
     imageurl?: string | null;     // field name used in merged_products.json
     brand: string;
+}
+
+function capitalizeFirstLetter(str: string) {
+    if (!str) return str; // Retorna a string vazia se for nula ou vazia
+    return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 export default function SyncDecaPage() {
@@ -76,7 +81,7 @@ export default function SyncDecaPage() {
                     const putRes = await fetch(`${API}/products/${existingProduct._id}`, {
                         method: 'PUT',
                         headers,
-                        body: JSON.stringify({ description: item.product_name.toUpperCase() }) // DECA products don't have a brand field, so we set a default
+                        body: JSON.stringify({ description: item.name.toUpperCase(), brand_name: item.brand.toUpperCase() }) // DECA products don't have a brand field, so we set a default
                     });
 
                     if (putRes.ok) {
@@ -85,13 +90,13 @@ export default function SyncDecaPage() {
                         f++;
                     }
                 } else if (getRes.status === 404) {
-                    const imgUrl = (item.image_url ?? item.imageurl ?? '').trim();
+                    const imgUrl = (item.image ?? item.imageurl ?? '').trim();
                     const isValidUrl = imgUrl.length > 0;
                     const requestBody: any = {
                         product_code: item.code.toString(),
-                        description: item.product_name.toUpperCase(),
+                        description: item.name.toUpperCase(),
                         base_price: item.price || 0,
-                        brand_name: item.brand // default brand, as DECA products don't have a brand field
+                        brand_name: item.brand.toUpperCase() // default brand, as DECA products don't have a brand field
                     };
                     if (isValidUrl) {
                         requestBody.imageurl = imgUrl;
@@ -255,7 +260,7 @@ export default function SyncDecaPage() {
                                             <td className="px-4 py-2.5">
                                                 <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-700">{p.code}</span>
                                             </td>
-                                            <td className="px-4 py-2.5 text-gray-700 max-w-xs truncate" title={p.product_name}>{p.product_name}</td>
+                                            <td className="px-4 py-2.5 text-gray-700 max-w-xs truncate" title={p.name}>{p.name}</td>
                                             <td className="px-4 py-2.5">
                                                 <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{p.brand || 'TRAMONTINA'}</span>
                                             </td>
@@ -266,7 +271,7 @@ export default function SyncDecaPage() {
                                             </td>
                                             <td className="px-4 py-2.5">
                                                 {(() => {
-                                                    const img = p.image_url ?? p.imageurl; return img ? (
+                                                    const img = p.image ?? p.imageurl; return img ? (
                                                         <a
                                                             href={img}
                                                             target="_blank"

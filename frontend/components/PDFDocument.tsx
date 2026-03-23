@@ -62,13 +62,20 @@ const effectivePrice = (p: Product): number => {
 
 const proxyImage = (url?: string): string | undefined => {
     if (!url) return undefined;
-    if (typeof window !== 'undefined') {
-        return url.replace(
-            /https?:\/\/arquivos\.mercos\.com/,
-            `${window.location.origin}/api/mercos-images`,
-        );
+    
+    // Check if it's already a relative path or local api path
+    if (url.startsWith('/')) return url;
+    
+    // Only route WebP images through our proxy as react-pdf doesn't support them natively
+    if (url.toLowerCase().includes('.webp') && (url.startsWith('http://') || url.startsWith('https://'))) {
+        const endpoint = `/api/proxy-image?url=${encodeURIComponent(url)}`;
+        if (typeof window !== 'undefined') {
+            return `${window.location.origin}${endpoint}`;
+        }
+        return endpoint;
     }
-    return url.replace(/https?:\/\/arquivos\.mercos\.com/, '/api/mercos-images');
+    
+    return url;
 };
 
 // ─── Sub-components ─────────────────────────────────────────────

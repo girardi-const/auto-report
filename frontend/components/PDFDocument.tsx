@@ -65,8 +65,8 @@ const proxyImage = (url?: string): string | undefined => {
 
     if (url.startsWith('/')) return url;
 
-    // Format WebP to PNG via our specific server route
-    if (url.toLowerCase().includes('.webp') && (url.startsWith('http://') || url.startsWith('https://'))) {
+    // Format WebP to PNG or bypass CORS for troubled domains via our specific server route
+    if ((url.toLowerCase().includes('.webp') || url.includes('komeco.com.br')) && (url.startsWith('http://') || url.startsWith('https://'))) {
         const endpoint = `/api/proxy-image?url=${encodeURIComponent(url)}`;
         return typeof window !== 'undefined' ? `${window.location.origin}${endpoint}` : endpoint;
     }

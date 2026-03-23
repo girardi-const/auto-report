@@ -9,10 +9,17 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const response = await fetch(url);
+        const parsed = new URL(url);
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Referer': `${parsed.origin}/`,
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+            }
+        });
         
         if (!response.ok) {
-            return new NextResponse('Failed to fetch image', { status: response.status });
+            return new NextResponse(`Failed to fetch image: ${response.status}`, { status: response.status });
         }
 
         const buffer = await response.arrayBuffer();

@@ -82,6 +82,16 @@ const proxyImage = (url?: string): string | undefined => {
         'https://www.rinnai.com.br/': '/api/rinnai-images/',
         'https://cdn.vnda.com.br/': '/api/immersi-images/',
         'https://www.komeco.com.br/': '/api/komeco-images/',
+        'https://siermoveis.com.br/': '/api/sier-images/',
+        'http://siermoveis.com.br/': '/api/sier-images/',
+        'https://www.lorenzetti.com.br/': '/api/lorenzetti-images/',
+        'http://www.lorenzetti.com.br/': '/api/lorenzetti-images/',
+        'https://lorenzetti.com.br/': '/api/lorenzetti2-images/',
+        'http://lorenzetti.com.br/': '/api/lorenzetti2-images/',
+        'https://www.balcony.com.br/': '/api/balcony-images/',
+        'http://www.balcony.com.br/': '/api/balcony-images/',
+        'https://www.incepa.com.br/': '/api/incepa-images/',
+        'http://www.incepa.com.br/': '/api/incepa-images/',
     };
 
     for (const [domain, proxyPath] of Object.entries(rewrites)) {

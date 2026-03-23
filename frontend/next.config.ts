@@ -63,6 +63,56 @@ const nextConfig: NextConfig = {
         hostname: "www.komeco.com.br",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "siermoveis.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "siermoveis.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "www.lorenzetti.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "www.lorenzetti.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "lorenzetti.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "lorenzetti.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "www.balcony.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "www.balcony.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "www.incepa.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "www.incepa.com.br",
+        pathname: "/**",
+      },
     ],
   },
   async rewrites() {
@@ -102,6 +152,26 @@ const nextConfig: NextConfig = {
       {
         source: "/api/komeco-images/:path*",
         destination: "https://www.komeco.com.br/:path*",
+      },
+      {
+        source: "/api/sier-images/:path*",
+        destination: "https://siermoveis.com.br/:path*",
+      },
+      {
+        source: "/api/lorenzetti-images/:path*",
+        destination: "https://www.lorenzetti.com.br/:path*",
+      },
+      {
+        source: "/api/lorenzetti2-images/:path*",
+        destination: "https://lorenzetti.com.br/:path*",
+      },
+      {
+        source: "/api/balcony-images/:path*",
+        destination: "https://www.balcony.com.br/:path*",
+      },
+      {
+        source: "/api/incepa-images/:path*",
+        destination: "https://www.incepa.com.br/:path*",
       },
     ];
   },

@@ -47,7 +47,7 @@ export interface PDFDocumentProps {
 // ─── Helpers ────────────────────────────────────────────────────
 
 const fmt = (value: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 
 const splitPrice = (value: number): [string, string] => {
     const full = fmt(value); // "R$ 1.349,90"
@@ -62,9 +62,9 @@ const effectivePrice = (p: Product): number => {
 
 const proxyImage = (url?: string): string | undefined => {
     if (!url) return undefined;
-    
+
     if (url.startsWith('/')) return url;
-    
+
     // Format WebP to PNG via our specific server route
     if (url.toLowerCase().includes('.webp') && (url.startsWith('http://') || url.startsWith('https://'))) {
         const endpoint = `/api/proxy-image?url=${encodeURIComponent(url)}`;
@@ -90,7 +90,7 @@ const proxyImage = (url?: string): string | undefined => {
             return typeof window !== 'undefined' ? `${window.location.origin}${rewrittenPath}` : rewrittenPath;
         }
     }
-    
+
     return url;
 };
 
@@ -178,12 +178,12 @@ const ProductRow: React.FC<{ product: Product }> = ({ product }) => {
             </View>
             {/* Unit price */}
             <View style={styles.productPriceCol}>
-                <Text style={styles.productPriceCurrency}>{pCur}</Text>
+                <Text style={styles.productPriceCurrency}>{pCur}0</Text>
             </View>
 
             {/* Subtotal */}
             <View style={styles.productSubtotalCol}>
-                <Text style={styles.productPriceCurrency}>{sCur}</Text>
+                <Text style={styles.productPriceCurrency}>{sCur}0</Text>
             </View>
 
         </View>

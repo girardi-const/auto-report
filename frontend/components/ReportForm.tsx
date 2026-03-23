@@ -148,7 +148,6 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
         };
     });
 
-    console.log(sections)
 
     const subtotalBeforeCash = validSections.reduce((acc, s) => acc + calculateSubtotal(s.products, s.discount), 0);
     const totalValue = subtotalBeforeCash * (1 - (cashDiscount || 0) / 100);

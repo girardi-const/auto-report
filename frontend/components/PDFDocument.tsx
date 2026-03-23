@@ -63,16 +63,32 @@ const effectivePrice = (p: Product): number => {
 const proxyImage = (url?: string): string | undefined => {
     if (!url) return undefined;
     
-    // Check if it's already a relative path or local api path
     if (url.startsWith('/')) return url;
     
-    // Only route WebP images through our proxy as react-pdf doesn't support them natively
+    // Format WebP to PNG via our specific server route
     if (url.toLowerCase().includes('.webp') && (url.startsWith('http://') || url.startsWith('https://'))) {
         const endpoint = `/api/proxy-image?url=${encodeURIComponent(url)}`;
-        if (typeof window !== 'undefined') {
-            return `${window.location.origin}${endpoint}`;
+        return typeof window !== 'undefined' ? `${window.location.origin}${endpoint}` : endpoint;
+    }
+
+    // Map domains to next.config.ts rewrites to bypass CORS for client-side PDF generation
+    const rewrites: Record<string, string> = {
+        'https://arquivos.mercos.com/': '/api/mercos-images/',
+        'https://dexcoprod.vteximg.com.br/': '/api/dexco-images/',
+        'https://res.cloudinary.com/': '/api/cloudinary-images/',
+        'https://docolinstitucional.vteximg.com.br/': '/api/docol-images/',
+        'https://censi-site-resources.s3.sa-east-1.amazonaws.com/': '/api/censi-images/',
+        'https://s3.amazonaws.com/assets.tramontina.com.br/': '/api/tramontina-images/',
+        'https://www.rinnai.com.br/': '/api/rinnai-images/',
+        'https://cdn.vnda.com.br/': '/api/immersi-images/',
+        'https://www.komeco.com.br/': '/api/komeco-images/',
+    };
+
+    for (const [domain, proxyPath] of Object.entries(rewrites)) {
+        if (url.startsWith(domain)) {
+            const rewrittenPath = url.replace(domain, proxyPath);
+            return typeof window !== 'undefined' ? `${window.location.origin}${rewrittenPath}` : rewrittenPath;
         }
-        return endpoint;
     }
     
     return url;

@@ -65,40 +65,12 @@ const proxyImage = (url?: string): string | undefined => {
 
     if (url.startsWith('/')) return url;
 
-    // Format WebP to PNG or bypass CORS for troubled domains via our specific server route
-    if ((url.toLowerCase().includes('.webp') || url.includes('komeco.com.br')) && (url.startsWith('http://') || url.startsWith('https://'))) {
-        const endpoint = `/api/proxy-image?url=${encodeURIComponent(url)}`;
+    // Proxy all external images through our specific server route
+    // This bypasses CORS, fixes TLS issues, converts images to PNG,
+    // and satisfies react-pdf's extension checks by adding &ext=.png
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+        const endpoint = `/api/proxy-image?url=${encodeURIComponent(url)}&ext=.png`;
         return typeof window !== 'undefined' ? `${window.location.origin}${endpoint}` : endpoint;
-    }
-
-    // Map domains to next.config.ts rewrites to bypass CORS for client-side PDF generation
-    const rewrites: Record<string, string> = {
-        'https://arquivos.mercos.com/': '/api/mercos-images/',
-        'https://dexcoprod.vteximg.com.br/': '/api/dexco-images/',
-        'https://res.cloudinary.com/': '/api/cloudinary-images/',
-        'https://docolinstitucional.vteximg.com.br/': '/api/docol-images/',
-        'https://censi-site-resources.s3.sa-east-1.amazonaws.com/': '/api/censi-images/',
-        'https://s3.amazonaws.com/assets.tramontina.com.br/': '/api/tramontina-images/',
-        'https://www.rinnai.com.br/': '/api/rinnai-images/',
-        'https://cdn.vnda.com.br/': '/api/immersi-images/',
-        'https://www.komeco.com.br/': '/api/komeco-images/',
-        'https://siermoveis.com.br/': '/api/sier-images/',
-        'http://siermoveis.com.br/': '/api/sier-images/',
-        'https://www.lorenzetti.com.br/': '/api/lorenzetti-images/',
-        'http://www.lorenzetti.com.br/': '/api/lorenzetti-images/',
-        'https://lorenzetti.com.br/': '/api/lorenzetti2-images/',
-        'http://lorenzetti.com.br/': '/api/lorenzetti2-images/',
-        'https://www.balcony.com.br/': '/api/balcony-images/',
-        'http://www.balcony.com.br/': '/api/balcony-images/',
-        'https://www.incepa.com.br/': '/api/incepa-images/',
-        'http://www.incepa.com.br/': '/api/incepa-images/',
-    };
-
-    for (const [domain, proxyPath] of Object.entries(rewrites)) {
-        if (url.startsWith(domain)) {
-            const rewrittenPath = url.replace(domain, proxyPath);
-            return typeof window !== 'undefined' ? `${window.location.origin}${rewrittenPath}` : rewrittenPath;
-        }
     }
 
     return url;
@@ -206,21 +178,33 @@ const TotalBlock: React.FC<{
     cashDiscount: number;
 }> = ({ totalValue, subtotalBeforeCash, cashDiscount }) => (
     <View style={styles.totalRow}>
-        {cashDiscount > 0 && (
+        {cashDiscount > 0 ? (
             <>
-                <Text style={styles.totalLabel}>Total a Prazo:</Text>
-                <Text style={[styles.totalValue, { marginRight: 16 }]}>{fmt(subtotalBeforeCash)}</Text>
+                <View style={styles.totalItem}>
+                    <Text style={styles.totalLabel}>Total a Prazo :</Text>
+                    <Text style={styles.totalValue}>{fmt(subtotalBeforeCash)}</Text>
+                </View>
 
-                <Text style={styles.totalLabel}>
-                    Desconto à Vista ({cashDiscount}%):
-                </Text>
-                <Text style={[styles.totalValue, { marginRight: 16 }]}>
-                    -{fmt(subtotalBeforeCash * (cashDiscount / 100))}
-                </Text>
+                <View style={styles.totalItem}>
+                    <Text style={styles.totalLabel}>
+                        Desconto a Vista({cashDiscount}%) :
+                    </Text>
+                    <Text style={styles.totalValue}>
+                        {fmt(subtotalBeforeCash * (cashDiscount / 100))}
+                    </Text>
+                </View>
+
+                <View style={styles.totalItem}>
+                    <Text style={styles.totalLabel}>Total à Vista :</Text>
+                    <Text style={styles.totalValue}>{fmt(totalValue)}</Text>
+                </View>
             </>
+        ) : (
+            <View style={styles.totalItem}>
+                <Text style={styles.totalLabel}>Total :</Text>
+                <Text style={styles.totalValue}>{fmt(totalValue)}</Text>
+            </View>
         )}
-        <Text style={styles.totalLabel}>Total</Text>
-        <Text style={styles.totalValue}>{fmt(totalValue)}</Text>
     </View>
 );
 

@@ -237,25 +237,28 @@ export const styles = StyleSheet.create({
 
     // ─── TOTAL ROW ─────────────────────────────────────────────────
     totalRow: {
-        flexDirection: 'row',
+        flexDirection: 'column',
         justifyContent: 'flex-end',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         backgroundColor: '#f2f2f2',
         paddingVertical: 8,
         paddingRight: 8,
         marginTop: 4,
     },
+    totalItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: 24,
+    },
     totalLabel: {
-        fontSize: 9,
+        fontSize: 7.5,
         fontFamily: 'Helvetica-Bold',
-        marginRight: 24,
         textTransform: 'uppercase',
+        marginRight: 4,
     },
     totalValue: {
-        fontSize: 9,
+        fontSize: 8.5,
         fontFamily: 'Helvetica-Bold',
-        minWidth: 80,
-        textAlign: 'right',
     },
 
     // ─── FOOTER ────────────────────────────────────────────────────

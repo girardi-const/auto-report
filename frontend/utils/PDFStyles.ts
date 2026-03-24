@@ -239,6 +239,7 @@ export const styles = StyleSheet.create({
     totalRow: {
         flexDirection: 'column',
         justifyContent: 'flex-end',
+        gap: 5,
         alignItems: 'flex-end',
         backgroundColor: '#f2f2f2',
         paddingVertical: 8,

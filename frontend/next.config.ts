@@ -123,6 +123,11 @@ const nextConfig: NextConfig = {
         hostname: "cdn3.quick-step.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "docolinstitucional.vtexassets.com",
+        pathname: "/**",
+      },
     ],
   },
   async rewrites() {

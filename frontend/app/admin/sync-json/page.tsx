@@ -81,7 +81,7 @@ export default function SyncDecaPage() {
                     const putRes = await fetch(`${API}/products/${existingProduct._id}`, {
                         method: 'PUT',
                         headers,
-                        body: JSON.stringify({ description: item.name.toUpperCase(), brand_name: item.brand.toUpperCase() }) // DECA products don't have a brand field, so we set a default
+                        body: JSON.stringify({ description: item.name.toUpperCase(), imageurl: item.imageurl }) // DECA products don't have a brand field, so we set a default
                     });
 
                     if (putRes.ok) {
@@ -96,7 +96,7 @@ export default function SyncDecaPage() {
                         product_code: item.code.toString(),
                         description: item.name.toUpperCase(),
                         base_price: item.price || 0,
-                        brand_name: item.brand.toUpperCase() // default brand, as DECA products don't have a brand field
+                        brand_name: "DOCOL" // default brand, as DECA products don't have a brand field
                     };
                     if (isValidUrl) {
                         requestBody.imageurl = imgUrl;
@@ -262,7 +262,7 @@ export default function SyncDecaPage() {
                                             </td>
                                             <td className="px-4 py-2.5 text-gray-700 max-w-xs truncate" title={p.name}>{p.name}</td>
                                             <td className="px-4 py-2.5">
-                                                <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{p.brand || 'TRAMONTINA'}</span>
+                                                <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{p.brand || ""}</span>
                                             </td>
                                             <td className="px-4 py-2.5 text-right font-semibold text-gray-800">
                                                 {p.price != null

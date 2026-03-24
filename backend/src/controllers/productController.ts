@@ -13,7 +13,10 @@ export const getProductByCode = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const { code } = req.params;
+        let { code } = req.params as any; // Type override since Express types normally assume strings
+        if (Array.isArray(code)) {
+            code = (code as any).join('/');
+        }
         const product = await ProductService.getProductByCode(code);
 
         if (!product) {

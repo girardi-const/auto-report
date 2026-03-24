@@ -113,6 +113,11 @@ const nextConfig: NextConfig = {
         hostname: "www.incepa.com.br",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "via.placeholder.com",
+        pathname: "/**",
+      },
     ],
   },
   async rewrites() {

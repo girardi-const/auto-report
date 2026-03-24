@@ -27,7 +27,7 @@ const upload = multer({
 });
 
 router.get('/', listProducts);
-router.get('/:code', getProductByCode);
+router.get('/*code', getProductByCode);
 router.post('/', requireAdmin, createProduct);
 router.post('/upload', requireAdmin, upload.single('image'), createProductWithImage);
 router.put('/:id', requireAdmin, upload.single('image'), updateProduct);

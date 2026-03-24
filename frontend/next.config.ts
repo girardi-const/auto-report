@@ -118,6 +118,11 @@ const nextConfig: NextConfig = {
         hostname: "via.placeholder.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "cdn3.quick-step.com",
+        pathname: "/**",
+      },
     ],
   },
   async rewrites() {
@@ -177,6 +182,10 @@ const nextConfig: NextConfig = {
       {
         source: "/api/incepa-images/:path*",
         destination: "https://www.incepa.com.br/:path*",
+      },
+      {
+        source: "/api/quickstep-images/:path*",
+        destination: "https://cdn3.quick-step.com/:path*",
       },
     ];
   },

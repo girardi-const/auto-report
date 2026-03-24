@@ -65,10 +65,10 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
     const [generatingExcel, setGeneratingExcel] = useState(false);
     const [reportTitle, setReportTitle] = useState('');
 
-    const { especificador, contact, consultor, consultorPhone, sections, cashDiscount, loading: productLoading, clientInfo } = state;
+    const { especificador, contact, consultor, consultorPhone, sections, cashDiscount, deliveryFee, loading: productLoading, clientInfo } = state;
     const {
         setEspecificador, setContact, setConsultor, setConsultorPhone, setSections,
-        setCashDiscount, addSection, addProduct, updateProduct, updateSectionMargin,
+        setCashDiscount, setDeliveryFee, addSection, addProduct, updateProduct, updateSectionMargin,
         removeSection, removeProduct, updateSectionName, updateClientInfo,
     } = actions;
     const { calculateSubtotal, timers, setLoading } = utils;
@@ -103,6 +103,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 if (fetched.consultor) setConsultor(fetched.consultor);
                 if (fetched.consultorPhone) setConsultorPhone(fetched.consultorPhone);
                 if (fetched.cash_discount != null) setCashDiscount(fetched.cash_discount);
+                if (fetched.delivery_value != null) setDeliveryFee(fetched.delivery_value);
                 if (fetched.client_info) {
                     const ci = fetched.client_info;
                     (Object.keys(ci) as (keyof typeof ci)[]).forEach((k) => {
@@ -127,11 +128,11 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
     };
 
     const subtotalBeforeCash = sections.reduce((acc, s) => acc + calculateSubtotal(s.products, s.discount), 0);
-    const totalValue = subtotalBeforeCash * (1 - (cashDiscount || 0) / 100);
+    const totalValue = subtotalBeforeCash * (1 - (cashDiscount || 0) / 100) + (deliveryFee || 0);
 
     const handleSave = async () => {
         if (!report) return;
-        const payload = buildPayload(reportTitle || report.title, especificador, consultor, consultorPhone, cashDiscount, clientInfo, sections);
+        const payload = buildPayload(reportTitle || report.title, especificador, consultor, consultorPhone, cashDiscount, deliveryFee, clientInfo, sections);
         try {
             await updateReport(report._id, payload);
             setReport(prev => prev ? { ...prev, title: payload.title, sections: payload.sections as SavedReport['sections'] } : prev);
@@ -189,6 +190,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                     totalValue={totalValue}
                     subtotalBeforeCash={subtotalBeforeCash}
                     cashDiscount={cashDiscount}
+                    deliveryFee={deliveryFee}
                     clientInfo={clientInfo}
                 />
             );
@@ -207,7 +209,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
         setGeneratingExcel(true);
         try {
             await handleSave();
-            await generateExcel({ especificador, consultor, consultorPhone, sections, cashDiscount, clientInfo });
+            await generateExcel({ especificador, consultor, consultorPhone, sections, cashDiscount, deliveryFee, clientInfo });
         } catch { alert('Erro ao gerar Excel.'); }
         finally { setGeneratingExcel(false); }
     };
@@ -403,7 +405,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                                 {formatCurrency(report.sections.reduce((acc, s) => {
                                     const raw = s.products.reduce((a, p) => a + p.total, 0);
                                     return acc + raw * (1 - (s.section_discount || 0) / 100);
-                                }, 0))}
+                                }, 0) * (1 - (report.cash_discount || 0) / 100) + (report.delivery_value || 0))}
                             </span>
                         </div>
                     </div>
@@ -423,6 +425,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                                     consultor: report.consultor,
                                     consultorPhone: report.consultorPhone,
                                     cashDiscount: report.cash_discount,
+                                    delivery_value: report.delivery_value,
                                     clientInfo: report.client_info,
                                     sections: savedToFrontendSections(report)
                                 }}

@@ -29,6 +29,7 @@ interface ExportParams {
     consultorPhone: string;
     sections: Section[];
     cashDiscount: number;
+    deliveryFee: number;
     clientInfo: ClientInfo;
 }
 
@@ -141,6 +142,7 @@ export async function generateExcel({
     consultorPhone,
     sections,
     cashDiscount,
+    deliveryFee,
     clientInfo,
 }: ExportParams): Promise<void> {
 
@@ -308,37 +310,55 @@ export async function generateExcel({
     );
     const prazoFormula = subtotalRows.map(sr => `J${sr}`).join('+');
 
+    const taxaRow = r;
+    if (deliveryFee > 0) {
+        ws.getRow(r).height = 26;
+        mergeStyle(ws, r, 1, 9, {
+            value: 'TAXA DE ENTREGA',
+            bold: true, bg: C.lightBlue, ha: 'right', sz: 11,
+        });
+        sc(ws.getCell(r, 10), {
+            value: deliveryFee,
+            bold: true, bg: C.lightBlue, ha: 'center', fmt: BRL, sz: 11,
+        });
+        sc(ws.getCell(r, 11), { bg: C.lightBlue });
+        r++;
+    }
+
     const totalPrazoRow = r;
     ws.getRow(r).height = 26;
     mergeStyle(ws, r, 1, 9, { value: 'TOTAL A PRAZO', bold: true, bg: C.totalBg, ha: 'right', sz: 11 });
     sc(ws.getCell(r, 10), {
-        value: { formula: prazoFormula, result: prazoResult } as ExcelJS.CellFormulaValue,
+        value: { formula: deliveryFee > 0 ? `${prazoFormula}+J${taxaRow}` : prazoFormula, result: prazoResult + deliveryFee } as ExcelJS.CellFormulaValue,
         bold: true, bg: C.totalBg, ha: 'center', fmt: BRL, sz: 11,
     });
     sc(ws.getCell(r, 11), { bg: C.totalBg });
     r++;
 
     const totalDescRow = r;
-    ws.getRow(r).height = 26;
-    mergeStyle(ws, r, 1, 9, {
-        value: `DESCONTO À VISTA (${cashDiscount}%)`,
-        bold: true, fc: C.red, bg: C.lightBlue, ha: 'right', sz: 11,
-    });
-    sc(ws.getCell(r, 10), {
-        value: cashDiscount > 0
-            ? { formula: `-J${totalPrazoRow}*${cashDiscount / 100}`, result: -(prazoResult * cashDiscount / 100) } as ExcelJS.CellFormulaValue
-            : 0,
-        bold: true, fc: C.red, bg: C.lightBlue, ha: 'center', fmt: BRL, sz: 11,
-    });
-    sc(ws.getCell(r, 11), { bg: C.lightBlue });
-    r++;
+    if (cashDiscount > 0) {
+        ws.getRow(r).height = 26;
+        mergeStyle(ws, r, 1, 9, {
+            value: `DESCONTO À VISTA (${cashDiscount}%)`,
+            bold: true, fc: C.red, bg: C.lightBlue, ha: 'right', sz: 11,
+        });
+        sc(ws.getCell(r, 10), {
+            value: { formula: `-(${prazoFormula})*${cashDiscount / 100}`, result: -(prazoResult * cashDiscount / 100) } as ExcelJS.CellFormulaValue,
+            bold: true, fc: C.red, bg: C.lightBlue, ha: 'center', fmt: BRL, sz: 11,
+        });
+        sc(ws.getCell(r, 11), { bg: C.lightBlue });
+        r++;
+    }
+
+    let finalFormula = `J${totalPrazoRow}`;
+    if (cashDiscount > 0) finalFormula += `+J${totalDescRow}`;
 
     ws.getRow(r).height = 28;
     mergeStyle(ws, r, 1, 9, { value: 'TOTAL À VISTA', bold: true, fc: C.greenDark, bg: C.greenBg, ha: 'right', sz: 12 });
     sc(ws.getCell(r, 10), {
         value: {
-            formula: `J${totalPrazoRow}+J${totalDescRow}`,
-            result: prazoResult * (1 - cashDiscount / 100),
+            formula: finalFormula,
+            result: prazoResult * (1 - cashDiscount / 100) + deliveryFee,
         } as ExcelJS.CellFormulaValue,
         bold: true, fc: C.greenDark, bg: C.greenBg, ha: 'center', fmt: BRL, sz: 12,
     });

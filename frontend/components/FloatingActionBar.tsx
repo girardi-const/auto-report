@@ -4,6 +4,7 @@ import { formatCurrency } from "../utils/formatters";
 interface FloatingActionBarProps {
     subtotalBeforeCash: number;
     totalValue: number;
+    deliveryFee: number;
     isGeneratingExcel: boolean;
     isGeneratingPDF: boolean;
     isSaving: boolean;
@@ -16,6 +17,7 @@ interface FloatingActionBarProps {
 export function FloatingActionBar({
     subtotalBeforeCash,
     totalValue,
+    deliveryFee,
     isGeneratingExcel,
     isGeneratingPDF,
     isSaving,
@@ -30,7 +32,7 @@ export function FloatingActionBar({
                 <div className="flex flex-col leading-none">
                     <span className="text-[9px] uppercase text-white/40 font-black tracking-[0.4em] mb-1">Total a Prazo</span>
                     <span className="text-xl font-black italic tracking-tighter text-white/80">
-                        {formatCurrency(subtotalBeforeCash)}
+                        {formatCurrency(subtotalBeforeCash + deliveryFee)}
                     </span>
                 </div>
                 <div className="w-[1px] h-8 bg-white/10"></div>

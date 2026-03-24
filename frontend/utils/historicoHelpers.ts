@@ -5,7 +5,7 @@ export function calcReportTotal(report: SavedReport): number {
         const raw = s.products.reduce((a, p) => a + p.total, 0);
         return acc + raw * (1 - (s.section_discount || 0) / 100);
     }, 0);
-    return sectionTotal;
+    return sectionTotal * (1 - (report.cash_discount || 0) / 100) + (report.delivery_value || 0);
 }
 
 export function savedToFrontendSections(report: SavedReport): Section[] {
@@ -43,6 +43,7 @@ export function buildPayload(
     consultor: string,
     consultorPhone: string,
     cashDiscount: number,
+    deliveryFee: number,
     clientInfo: import('../types').ClientInfo,
     sections: Section[]
 ) {
@@ -52,6 +53,7 @@ export function buildPayload(
         consultor,
         consultorPhone,
         cash_discount: cashDiscount,
+        delivery_value: deliveryFee,
         client_info: clientInfo,
         sections: sections.map((s) => ({
             section_name: s.name,

@@ -123,6 +123,7 @@ export interface SavedReport {
     consultor?: string;
     consultorPhone?: string;
     cash_discount?: number;
+    delivery_value?: number;
     client_info?: ClientInfo;
     sections: SavedReportSection[];
     creator_id: string;

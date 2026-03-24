@@ -82,6 +82,7 @@ export default function TestPdfPage() {
                     totalValue={totalValue}
                     subtotalBeforeCash={totalValue}
                     cashDiscount={0}
+                    deliveryFee={0}
                     clientInfo={{ name: 'Cliente Teste Renderização', telefone: '' }}
                 />
             );

@@ -11,6 +11,7 @@ export interface IReport extends Document {
     consultor: string;
     consultorPhone: string;
     cash_discount: number;
+    delivery_value?: number;
     client_info: IClientInfo;
     sections: {
         section_name: string;
@@ -52,6 +53,7 @@ const ReportSchema = new Schema<IReport>(
         consultor: { type: String, default: '' },
         consultorPhone: { type: String, default: '' },
         cash_discount: { type: Number, default: 0 },
+        delivery_value: { type: Number, default: 0 },
         client_info: { type: ClientInfoSchema, default: () => ({}) },
         sections: [
             {

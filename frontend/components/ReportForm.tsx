@@ -9,6 +9,7 @@ import PageHeader from "./PageHeader";
 import { GeneralInfo } from "./Generalnfo";
 import { ClientInfo } from "./ClientInfo";
 import { FinalCashDiscount } from "./FinalCashDiscount";
+import { DeliveryFeeInput } from "./DeliveryFeeInput";
 import { useReportState } from "../hooks/useReportState";
 import { useBrands } from "../hooks/useBrands";
 import { useReportActions } from "../hooks/useReportActions";
@@ -55,10 +56,10 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
     const { brandNames: brands } = useBrands();
     const { saveReport, updateReport, saving } = useReportActions();
 
-    const { especificador, contact, consultor, consultorPhone, sections, cashDiscount, loading, clientInfo } = state;
+    const { especificador, contact, consultor, consultorPhone, sections, cashDiscount, deliveryFee, loading, clientInfo } = state;
     const {
         setEspecificador, setContact, setConsultor, setConsultorPhone,
-        setSections, setCashDiscount, addSection, addProduct, updateProduct,
+        setSections, setCashDiscount, setDeliveryFee, addSection, addProduct, updateProduct,
         removeSection, removeProduct, updateSectionName, updateClientInfo, clearClientInfo, updateSectionMargin
     } = actions;
     const { calculateSubtotal, timers, setLoading } = utils;
@@ -150,7 +151,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
 
 
     const subtotalBeforeCash = validSections.reduce((acc, s) => acc + calculateSubtotal(s.products, s.discount), 0);
-    const totalValue = subtotalBeforeCash * (1 - (cashDiscount || 0) / 100);
+    const totalValue = subtotalBeforeCash * (1 - (cashDiscount || 0) / 100) + (deliveryFee || 0);
 
     // ── Persist to backend ────────────────────────────────────────────────────
     const handleSave = async (): Promise<string | null> => {
@@ -160,6 +161,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
             consultor,
             consultorPhone,
             cash_discount: cashDiscount,
+            delivery_value: deliveryFee,
             client_info: clientInfo,
             sections: buildSectionsPayload(validSections, calculateSubtotal),
         };
@@ -189,7 +191,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
             setGeneratingExcel(true);
             // Auto-save before export
             await handleSave();
-            await generateExcel({ especificador, consultor, consultorPhone, sections: validSections, cashDiscount, clientInfo });
+            await generateExcel({ especificador, consultor, consultorPhone, sections: validSections, cashDiscount, deliveryFee, clientInfo });
         } catch (error) {
             console.error('Error generating Excel:', error);
             alert('Erro ao gerar Excel. Por favor, tente novamente.');
@@ -212,6 +214,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
                 totalValue={totalValue}
                 subtotalBeforeCash={subtotalBeforeCash}
                 cashDiscount={cashDiscount}
+                deliveryFee={deliveryFee}
                 clientInfo={clientInfo}
             />;
 
@@ -237,6 +240,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
         setConsultor("");
         setConsultorPhone("");
         setSections([]);
+        setDeliveryFee(0);
         setReportTitle("");
         setSavedReportId(null);
         setSaveStatus('idle');
@@ -308,6 +312,8 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
                 </button>
             </div>
 
+            <DeliveryFeeInput value={deliveryFee} onChange={setDeliveryFee} />
+
             <FinalCashDiscount
                 value={cashDiscount}
                 onChange={setCashDiscount}
@@ -317,6 +323,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
             <FloatingActionBar
                 subtotalBeforeCash={subtotalBeforeCash}
                 totalValue={totalValue}
+                deliveryFee={deliveryFee}
                 isGeneratingExcel={generatingExcel}
                 isGeneratingPDF={generating}
                 isSaving={saving}

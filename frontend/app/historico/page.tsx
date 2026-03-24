@@ -122,10 +122,11 @@ export default function ReportsPage() {
             }));
 
             const cashDiscount = report.cash_discount ?? 0;
+            const deliveryFee = report.delivery_value ?? 0;
             const subtotalBeforeCash = sections.reduce((acc, s) =>
                 acc + s.products.reduce((a, p) => a + p.priceBase * p.units, 0) * (1 - (s.discount || 0) / 100)
                 , 0);
-            const totalValue = subtotalBeforeCash * (1 - cashDiscount / 100);
+            const totalValue = subtotalBeforeCash * (1 - cashDiscount / 100) + deliveryFee;
 
             const doc = (
                 <ReportPDFDocument
@@ -136,6 +137,7 @@ export default function ReportsPage() {
                     totalValue={totalValue}
                     subtotalBeforeCash={subtotalBeforeCash}
                     cashDiscount={cashDiscount}
+                    deliveryFee={deliveryFee}
                     clientInfo={report.client_info ?? { name: '', telefone: '' }}
                 />
             );
@@ -183,6 +185,7 @@ export default function ReportsPage() {
                 consultorPhone: report.consultorPhone ?? '',
                 sections,
                 cashDiscount: report.cash_discount ?? 0,
+                deliveryFee: report.delivery_value ?? 0,
                 clientInfo: report.client_info ?? { name: '', telefone: '' },
             });
         } catch (e) {

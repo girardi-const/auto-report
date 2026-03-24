@@ -9,6 +9,7 @@ export function useReportState(initialState?: any) {
     const [consultorPhone, setConsultorPhone] = useState(initialState?.consultorPhone || "");
     const [sections, setSections] = useState<Section[]>(initialState?.sections || []);
     const [cashDiscount, setCashDiscount] = useState(initialState?.cashDiscount || 0);
+    const [deliveryFee, setDeliveryFee] = useState(initialState?.delivery_value || 0);
     const [loading, setLoading] = useState<string | null>(null);
     const timers = useRef<Record<string, NodeJS.Timeout>>({});
 
@@ -100,10 +101,10 @@ export function useReportState(initialState?: any) {
     };
 
     return {
-        state: { especificador, contact, consultor, consultorPhone, sections, cashDiscount, loading, clientInfo },
+        state: { especificador, contact, consultor, consultorPhone, sections, cashDiscount, deliveryFee, loading, clientInfo },
         actions: {
             setEspecificador, setContact, setConsultor, setConsultorPhone,
-            setSections, setCashDiscount, addSection, addProduct, updateProduct,
+            setSections, setCashDiscount, setDeliveryFee, addSection, addProduct, updateProduct,
             updateSectionMargin,
             removeSection, removeProduct, updateSectionName, updateClientInfo, clearClientInfo
         },

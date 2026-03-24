@@ -39,6 +39,7 @@ export interface PDFDocumentProps {
     totalValue: number;
     subtotalBeforeCash: number;
     cashDiscount: number;
+    deliveryFee: number;
     logoSrc?: string; // base64 or URL for the Girardi logo
     subtitleSrc?: string; // base64 or URL for "o mesmo propósito" image
     date?: string; // e.g. "26/11/2025"
@@ -176,14 +177,23 @@ const TotalBlock: React.FC<{
     totalValue: number;
     subtotalBeforeCash: number;
     cashDiscount: number;
-}> = ({ totalValue, subtotalBeforeCash, cashDiscount }) => (
+    deliveryFee: number;
+}> = ({ totalValue, subtotalBeforeCash, cashDiscount, deliveryFee }) => (
     <View style={styles.totalRow}>
         {cashDiscount > 0 ? (
             <>
+
                 <View style={styles.totalItem}>
                     <Text style={styles.totalLabel}>Total a Prazo :</Text>
-                    <Text style={styles.totalValue}>{fmt(subtotalBeforeCash)}</Text>
+                    <Text style={styles.totalValue}>{fmt(subtotalBeforeCash + deliveryFee)}</Text>
                 </View>
+
+                {deliveryFee > 0 && (
+                    <View style={styles.totalItem}>
+                        <Text style={styles.totalLabel}>Taxa de Entrega :</Text>
+                        <Text style={styles.totalValue}>{fmt(deliveryFee)}</Text>
+                    </View>
+                )}
 
                 <View style={styles.totalItem}>
                     <Text style={styles.totalLabel}>
@@ -200,10 +210,18 @@ const TotalBlock: React.FC<{
                 </View>
             </>
         ) : (
-            <View style={styles.totalItem}>
-                <Text style={styles.totalLabel}>Total :</Text>
-                <Text style={styles.totalValue}>{fmt(totalValue)}</Text>
-            </View>
+            <>
+                {deliveryFee > 0 && (
+                    <View style={styles.totalItem}>
+                        <Text style={styles.totalLabel}>Taxa de Entrega :</Text>
+                        <Text style={styles.totalValue}>{fmt(deliveryFee)}</Text>
+                    </View>
+                )}
+                <View style={styles.totalItem}>
+                    <Text style={styles.totalLabel}>Total :</Text>
+                    <Text style={styles.totalValue}>{fmt(totalValue)}</Text>
+                </View>
+            </>
         )}
     </View>
 );
@@ -228,6 +246,7 @@ export const ReportPDFDocument: React.FC<PDFDocumentProps> = ({
     totalValue,
     subtotalBeforeCash,
     cashDiscount,
+    deliveryFee,
     logoSrc = '/logo.png',
     subtitleSrc = '/extracted/text.png',
     date = new Date().toLocaleDateString('pt-BR'),
@@ -319,6 +338,7 @@ export const ReportPDFDocument: React.FC<PDFDocumentProps> = ({
                 totalValue={totalValue}
                 subtotalBeforeCash={subtotalBeforeCash}
                 cashDiscount={cashDiscount}
+                deliveryFee={deliveryFee}
             />
 
             {/* Payment note */}

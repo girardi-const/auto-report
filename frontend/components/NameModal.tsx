@@ -79,7 +79,7 @@ export default function NameModal({ open, onSubmit, loading, initialName = '', i
                                 type="tel"
                                 value={telephone}
                                 onChange={(e) => setTelephone(formatPhoneNumber(e.target.value))}
-                                placeholder="Ex: (47) 99999-9999"
+                                placeholder="Ex: (49) 99999-9999"
                                 required
                                 disabled={submitting || loading}
                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all duration-200"

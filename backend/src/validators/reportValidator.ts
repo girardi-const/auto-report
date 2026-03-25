@@ -9,7 +9,8 @@ const ReportProductSchema = z.object({
     price: z.number().nonnegative('Preço não pode ser negativo'),
     margin: z.number(),
     discount: z.number(),
-    quantity: z.number().int().positive('Quantidade deve ser um número positivo'),
+    quantity: z.number().positive('Quantidade deve ser um número positivo'),
+    type: z.string().min(1, 'Tipo do produto é obrigatório'),
     total: z.number().nonnegative(),
 });
 

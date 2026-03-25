@@ -22,6 +22,7 @@ interface ReportPayload {
             margin: number;
             discount: number;
             quantity: number;
+            type: string;
             total: number;
         }[];
     }[];

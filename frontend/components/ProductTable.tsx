@@ -24,7 +24,8 @@ export function ProductTable({
                             <th className="px-4 py-4 w-40">Marca</th>
                             <th className="px-4 py-4 w-64">Produto</th>
                             <th className="px-4 py-4 w-28 text-center">Preço Un.</th>
-                            <th className="px-4 py-4 w-24 text-center">Und.</th>
+                            <th className="px-4 py-4 w-24 text-center">Qtde.</th>
+                            <th className="px-4 py-4 w-24 text-center">Tipo</th>
                             <th className="px-4 py-4 w-24 text-center">Margem(%)</th>
                             <th className="px-4 py-4 w-24 text-center">Desc(%)</th>
                             <th className="px-4 py-4 w-32 text-right">Subtotal</th>

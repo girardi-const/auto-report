@@ -16,6 +16,7 @@ export interface Product {
     margin: number;
     discount: number;
     image?: string;
+    type?: string;
 }
 
 export interface Section {
@@ -137,7 +138,9 @@ const ProductRow: React.FC<{ product: Product }> = ({ product }) => {
             <Text style={styles.productQty}>{product.units}</Text>
 
             {/* Unit */}
-            <Text style={styles.productUnit}>UN</Text>
+            <Text style={styles.productUnit}>{
+                product.type?.includes("MT") ? "MT²" : "UN"
+            }</Text>
 
             {/* Description */}
             <View style={styles.productDesc}>

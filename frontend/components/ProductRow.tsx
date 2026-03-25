@@ -61,11 +61,22 @@ export function ProductRow({
     }, [product.units, isUnitsFocused]);
 
     const handleUnitsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value.replace(/\D/g, ""); // Apenas números
-        setLocalUnits(val);
-        const numeric = parseInt(val, 10);
-        if (!isNaN(numeric) && numeric > 0) {
-            onUpdate({ units: numeric });
+        const isMT = product.type === "MT";
+        let val = e.target.value;
+        if (isMT) {
+            val = val.replace(/[^0-9.,]/g, "").replace(",", ".");
+            setLocalUnits(val);
+            const numeric = parseFloat(val);
+            if (!isNaN(numeric) && numeric > 0) {
+                onUpdate({ units: numeric });
+            }
+        } else {
+            val = val.replace(/\D/g, ""); // Apenas números
+            setLocalUnits(val);
+            const numeric = parseInt(val, 10);
+            if (!isNaN(numeric) && numeric > 0) {
+                onUpdate({ units: numeric });
+            }
         }
     };
 
@@ -298,22 +309,37 @@ export function ProductRow({
                     </div>
                 </div>
             </td>
-            <td className="px-4 py-4">
+            <td className="px-1 py-4">
                 <input
                     type="text"
-                    inputMode="numeric"
+                    inputMode={product.type === "MT" ? "decimal" : "numeric"}
                     value={localUnits}
                     onChange={handleUnitsChange}
                     onFocus={() => setIsUnitsFocused(true)}
                     onBlur={() => {
                         setIsUnitsFocused(false);
-                        if (!localUnits || parseInt(localUnits, 10) < 1) {
+                        const isMT = product.type === "MT";
+                        const numValue = isMT ? parseFloat(localUnits) : parseInt(localUnits, 10);
+                        if (!localUnits || isNaN(numValue) || numValue <= 0) {
                             setLocalUnits("1");
                             onUpdate({ units: 1 });
+                        } else if (!isMT) {
+                            setLocalUnits(numValue.toString());
+                            onUpdate({ units: numValue });
                         }
                     }}
                     className="w-full bg-transparent outline-none font-black border-2 border-gray-100 rounded-lg px-4 py-2 focus:border-primary focus:bg-white transition-all text-center text-xs"
                 />
+            </td>
+            <td className="px-4 py-4">
+                <select
+                    value={product.type || "UN"}
+                    onChange={(e) => onUpdate({ type: e.target.value })}
+                    className="w-full bg-transparent outline-none font-black border-2 border-gray-100 rounded-lg px-2 py-2 focus:border-primary focus:bg-white transition-all text-center text-xs appearance-none cursor-pointer"
+                >
+                    <option value="UN">UN</option>
+                    <option value="MT">MT²</option>
+                </select>
             </td>
             <td className="px-4 py-4">
                 <input

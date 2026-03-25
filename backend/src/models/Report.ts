@@ -26,6 +26,7 @@ export interface IReport extends Document {
             margin: number;
             discount: number;
             quantity: number;
+            type: string;
             total: number;
         }[];
     }[];
@@ -72,6 +73,7 @@ const ReportSchema = new Schema<IReport>(
                         margin: { type: Number, required: true },
                         discount: { type: Number, required: true, default: 0 },
                         quantity: { type: Number, required: true },
+                        type: { type: String, required: true },
                         total: { type: Number, required: true },
                     },
                 ],

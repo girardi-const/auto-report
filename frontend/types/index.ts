@@ -15,6 +15,7 @@ export interface Product {
     priceBase: number;
     originalPriceBase?: number;
     image: string;
+    type?: string;
 }
 
 export interface Section {
@@ -105,6 +106,7 @@ export interface SavedReportProduct {
     margin: number;
     discount: number;
     quantity: number;
+    type: string;
     total: number;
 }
 

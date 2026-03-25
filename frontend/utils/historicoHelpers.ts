@@ -32,6 +32,7 @@ export function savedToFrontendSections(report: SavedReport): Section[] {
                 margin: p.margin || 0,
                 discount: p.discount || 0,
                 image: p.image_url ?? '',
+                type: p.type || 'UN',
             };
         }),
     }));
@@ -70,6 +71,7 @@ export function buildPayload(
                     margin: p.margin ?? 0,
                     discount: p.discount ?? 0,
                     quantity: p.units,
+                    type: p.type || 'UN',
                     total: price * p.units,
                 };
             }),

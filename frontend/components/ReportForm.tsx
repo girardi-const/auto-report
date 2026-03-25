@@ -36,6 +36,7 @@ function buildSectionsPayload(sections: Section[], calculateSubtotal: (prods: Se
                 margin: p.margin ?? 0,
                 discount: p.discount ?? 0,
                 quantity: p.units,
+                type: p.type || 'UN',
                 total: priceWithDiscount * p.units,
             };
         }),
@@ -64,6 +65,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
     } = actions;
     const { calculateSubtotal, timers, setLoading } = utils;
 
+    console.log(sections)
     const [generating, setGenerating] = useState(false);
     const [generatingExcel, setGeneratingExcel] = useState(false);
     const [reportTitle, setReportTitle] = useState(initialTitle || "");

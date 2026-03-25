@@ -10,7 +10,7 @@ import NameModal from "@/components/NameModal";
 
 export default function Home() {
   const { user, loading: authLoading, isAdmin } = useAuth();
-  const { mongoUser, loading: mongoLoading, needsName, createMe } = useMongoUser();
+  const { mongoUser, loading: mongoLoading, needsName, needsTelephone, createMe } = useMongoUser();
   const router = useRouter();
 
   useEffect(() => {
@@ -97,10 +97,12 @@ export default function Home() {
     <div className="flex-1 bg-gradient-to-b from-white to-gray-50 w-full flex flex-col pt-16 px-4 md:px-8 text-secondary relative overflow-hidden flex-grow -mt-4">
       {/* Name Request Modal */}
       <NameModal
-        open={needsName}
+        open={needsName || needsTelephone}
         loading={mongoLoading}
-        onSubmit={async (name) => {
-          const success = await createMe(name);
+        initialName={mongoUser?.name || ''}
+        initialTelephone={mongoUser?.telephone || ''}
+        onSubmit={async (name, telephone) => {
+          const success = await createMe(name, telephone);
           return success;
         }}
       />

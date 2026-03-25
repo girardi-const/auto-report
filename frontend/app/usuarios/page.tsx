@@ -18,6 +18,7 @@ export default function UsersPage() {
     // Form state
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [telephone, setTelephone] = useState('')
     const [name, setName] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
@@ -42,12 +43,13 @@ export default function UsersPage() {
     const handleCreate = async (e: FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
-        const ok = await createUser(email, password, name);
+        const ok = await createUser(email, password, name, telephone);
         if (ok) {
             toast.success('Usuário criado com sucesso!');
             setEmail('');
             setPassword('');
             setName('');
+            setTelephone('');
         } else {
             toast.error(error || 'Erro ao criar usuário');
         }
@@ -88,10 +90,12 @@ export default function UsersPage() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto px-4 py-10 space-y-8">
+        <div className="min-h-screen mx-auto px-4 py-10 space-y-8">
             {/* Title */}
             <div>
-                <h1 className="text-2xl font-bold text-secondary">Gerenciar Usuários</h1>
+                <h1 className="text-gray-800 font-black text-2xl tracking-tight uppercase">
+                    Gerenciar Usuários
+                </h1>
                 <p className="text-gray-500 text-sm mt-1">
                     Crie, edite permissões ou remova contas de acesso ao sistema.
                 </p>
@@ -101,11 +105,13 @@ export default function UsersPage() {
                 name={name}
                 email={email}
                 password={password}
+                telephone={telephone}
                 submitting={submitting}
                 onChange={(field, value) => {
                     if (field === "name") setName(value);
                     if (field === "email") setEmail(value);
                     if (field === "password") setPassword(value);
+                    if (field === "telephone") setTelephone(value);
                 }}
                 onSubmit={handleCreate}
             />

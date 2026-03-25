@@ -85,7 +85,10 @@ export default function Header() {
                                         <span className="text-white/40 text-xs truncate">
                                             {user.email}
                                         </span>
-                                        <span className="text-primary text-[10px] uppercase tracking-widest font-bold mt-0.5">
+                                        <span className="text-white/40 text-xs truncate">
+                                            {mongoUser?.telephone}
+                                        </span>
+                                        <span className="text-white text-[10px] uppercase tracking-widest font-bold mt-0.5">
                                             {isAdmin ? 'Administrador' : 'Usuário'}
                                         </span>
                                     </div>

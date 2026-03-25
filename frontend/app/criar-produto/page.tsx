@@ -69,10 +69,7 @@ export default function CreateProductPage() {
             <div className="container mx-auto max-w-4xl pb-20">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
                     <div>
-                        <Link href="/" className="flex items-center gap-2 text-gray-400 hover:text-primary transition-colors text-xs font-bold uppercase tracking-widest mb-4">
-                            <ArrowLeft size={14} /> Voltar ao Início
-                        </Link>
-                        <h1 className="text-4xl font-black text-red- uppercase tracking-tighter italic">
+                        <h1 className="text-2xl font-black text-red- uppercase tracking-tighter italic">
                             Cadastrar <span className="text-primary italic">Novo</span> Produto
                         </h1>
                         <p className="text-gray-400 font-medium mt-1">Adicione produtos ao catálogo do sistema</p>

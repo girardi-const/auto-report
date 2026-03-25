@@ -13,6 +13,7 @@ export interface FirebaseUser {
     admin: boolean;
     createdAt: string | null;
     lastSignIn: string | null;
+    telephone: string;
 }
 
 interface UseUsersReturn {
@@ -20,7 +21,7 @@ interface UseUsersReturn {
     loading: boolean;
     error: string | null;
     fetchUsers: () => Promise<void>;
-    createUser: (email: string, password: string, name: string) => Promise<boolean>;
+    createUser: (email: string, password: string, name: string, telephone: string) => Promise<boolean>;
     deleteUser: (uid: string) => Promise<boolean>;
     toggleAdmin: (uid: string, admin: boolean) => Promise<boolean>;
 }
@@ -57,12 +58,12 @@ export function useUsers(): UseUsersReturn {
     }, [getIdToken]);
 
     const createUser = useCallback(
-        async (email: string, password: string, name: string): Promise<boolean> => {
+        async (email: string, password: string, name: string, telephone: string): Promise<boolean> => {
             try {
                 const res = await fetch(`${API}/users`, {
                     method: 'POST',
                     headers: await authHeaders(),
-                    body: JSON.stringify({ email, password, name }),
+                    body: JSON.stringify({ email, password, name, telephone }),
                 });
                 if (!res.ok) {
                     const data = await res.json();

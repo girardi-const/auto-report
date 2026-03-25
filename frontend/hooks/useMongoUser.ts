@@ -9,6 +9,7 @@ export interface MongoUser {
     uid: string;
     name: string;
     email: string;
+    telephone: string;
     role: 'user' | 'admin';
 }
 
@@ -17,6 +18,7 @@ export function useMongoUser() {
     const [mongoUser, setMongoUser] = useState<MongoUser | null>(null);
     const [loading, setLoading] = useState(true);
     const [needsName, setNeedsName] = useState(false);
+    const [needsTelephone, setNeedsTelephone] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const fetchMe = useCallback(async () => {
@@ -42,11 +44,13 @@ export function useMongoUser() {
             if (res.status === 404) {
                 // User is in Firebase but not in Mongo
                 setNeedsName(true);
+                setNeedsTelephone(true);
                 setMongoUser(null);
             } else if (res.ok) {
                 const data = await res.json();
                 setMongoUser(data.data);
-                setNeedsName(false);
+                setNeedsName(!data.data.name);
+                setNeedsTelephone(!data.data.telephone);
             } else {
                 const errData = await res.json();
                 throw new Error(errData.error?.message || 'Erro ao carregar seu perfil');
@@ -59,7 +63,7 @@ export function useMongoUser() {
         }
     }, [firebaseUser, getIdToken]);
 
-    const createMe = useCallback(async (name: string) => {
+    const createMe = useCallback(async (name: string, telephone: string) => {
         if (!firebaseUser) return false;
         setLoading(true);
         setError(null);
@@ -72,13 +76,15 @@ export function useMongoUser() {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ name }),
+                body: JSON.stringify({ name, telephone }),
             });
 
             if (res.ok) {
                 const data = await res.json();
                 setMongoUser(data.data);
-                setNeedsName(false);
+                setNeedsName(!data.data.name);
+                setNeedsTelephone(!data.data.telephone);
+
                 return true;
             } else {
                 const errData = await res.json();
@@ -97,5 +103,5 @@ export function useMongoUser() {
         fetchMe();
     }, [fetchMe]);
 
-    return { mongoUser, loading, error, needsName, createMe, refresh: fetchMe };
+    return { mongoUser, loading, error, needsName, needsTelephone, createMe, refresh: fetchMe };
 }

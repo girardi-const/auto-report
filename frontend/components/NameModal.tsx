@@ -1,29 +1,40 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { Loader2, User } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatPhoneNumber } from '@/utils';
 
 interface NameModalProps {
     open: boolean;
-    onSubmit: (name: string) => Promise<boolean>;
+    onSubmit: (name: string, telephone: string) => Promise<boolean>;
     loading: boolean;
+    initialName?: string;
+    initialTelephone?: string;
 }
 
-export default function NameModal({ open, onSubmit, loading }: NameModalProps) {
-    const [name, setName] = useState('');
+export default function NameModal({ open, onSubmit, loading, initialName = '', initialTelephone = '' }: NameModalProps) {
+    const [name, setName] = useState(initialName);
+    const [telephone, setTelephone] = useState(initialTelephone);
     const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (open) {
+            setName(initialName);
+            setTelephone(initialTelephone);
+        }
+    }, [open, initialName, initialTelephone]);
 
     if (!open) return null;
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        if (!name.trim()) return;
+        if (!name.trim() || !telephone.trim()) return;
 
         setSubmitting(true);
-        const ok = await onSubmit(name.trim());
+        const ok = await onSubmit(name.trim(), telephone.trim());
         if (ok) {
             toast.success('Perfil atualizado com sucesso!');
         } else {
-            toast.error('Erro ao salvar nome. Tente novamente.');
+            toast.error('Erro ao salvar os dados. Tente novamente.');
         }
         setSubmitting(false);
     };
@@ -39,7 +50,7 @@ export default function NameModal({ open, onSubmit, loading }: NameModalProps) {
                         Bem-vindo ao Portal Girardi!
                     </h2>
                     <p className="text-gray-500 text-sm mb-6">
-                        Para continuar, por favor, insira o seu nome completo. Isso nos ajudará a identificar quem criou cada relatório.
+                        Para continuar, por favor, verifique ou insira seus dados. Isso nos ajudará a identificar e contatar quem criou cada relatório.
                     </p>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -59,9 +70,25 @@ export default function NameModal({ open, onSubmit, loading }: NameModalProps) {
                             />
                         </div>
 
+                        <div>
+                            <label htmlFor="telephone" className="block text-sm font-medium text-gray-700 mb-1">
+                                Telefone (WhatsApp)
+                            </label>
+                            <input
+                                id="telephone"
+                                type="tel"
+                                value={telephone}
+                                onChange={(e) => setTelephone(formatPhoneNumber(e.target.value))}
+                                placeholder="Ex: (47) 99999-9999"
+                                required
+                                disabled={submitting || loading}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all duration-200"
+                            />
+                        </div>
+
                         <button
                             type="submit"
-                            disabled={!name.trim() || submitting || loading}
+                            disabled={!name.trim() || !telephone.trim() || submitting || loading}
                             className="w-full relative px-6 py-3 bg-primary hover:bg-[#c91e25] active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-primary/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest overflow-hidden"
                         >
                             {(submitting || loading) ? (

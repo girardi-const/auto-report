@@ -10,6 +10,7 @@ const CreateUserSchema = z.object({
     email: z.string().email('Email inválido'),
     password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
     name: z.string().min(1, 'Nome é obrigatório'),
+    telephone: z.string().min(1, 'Telefone é obrigatório'),
 });
 
 const ToggleAdminSchema = z.object({
@@ -17,7 +18,8 @@ const ToggleAdminSchema = z.object({
 });
 
 const CreateMeSchema = z.object({
-    name: z.string().min(1, 'Nome é obrigatório'),
+    name: z.string().min(1, 'Nome é obrigatório').optional(),
+    telephone: z.string().min(1, 'Telefone é obrigatório').optional(),
 });
 
 // ── Handlers ────────────────────────────────────────────────────────────────
@@ -35,17 +37,21 @@ export const listUsers = asyncHandler(
             uid: { $in: result.users.map(u => u.uid) }
         });
 
-        const mongoUserMap = new Map(mongoUsers.map(u => [u.uid, u.name]));
+        const mongoUserMap = new Map(mongoUsers.map(u => [u.uid, u]));
 
-        const users = result.users.map((u) => ({
-            uid: u.uid,
-            email: u.email ?? null,
-            name: mongoUserMap.get(u.uid) || 'Sem nome', // Default if not found in Mongo
-            disabled: u.disabled,
-            admin: !!(u.customClaims && u.customClaims.admin),
-            createdAt: u.metadata.creationTime ?? null,
-            lastSignIn: u.metadata.lastSignInTime ?? null,
-        }));
+        const users = result.users.map((u) => {
+            const mUser = mongoUserMap.get(u.uid);
+            return {
+                uid: u.uid,
+                email: u.email ?? null,
+                name: mUser?.name || 'Sem nome', // Default if not found in Mongo
+                telephone: mUser?.telephone || '',
+                disabled: u.disabled,
+                admin: !!(u.customClaims && u.customClaims.admin),
+                createdAt: u.metadata.creationTime ?? null,
+                lastSignIn: u.metadata.lastSignInTime ?? null,
+            };
+        });
 
         res.json(createSuccessResponse(users));
     }
@@ -57,13 +63,14 @@ export const listUsers = asyncHandler(
  */
 export const createUser = asyncHandler(
     async (req: Request, res: Response, _next: NextFunction) => {
-        const { email, password, name } = CreateUserSchema.parse(req.body);
+        const { email, password, name, telephone } = CreateUserSchema.parse(req.body);
 
         const userRecord = await getFirebaseAuth().createUser({ email, password });
 
         await User.create({
             uid: userRecord.uid,
             name,
+            telephone,
             email: userRecord.email,
             role: 'user', // Default role for new users
         });
@@ -159,11 +166,18 @@ export const createMe = asyncHandler(
             throw new AppError(401, 'Não autorizado', 'UNAUTHORIZED');
         }
 
-        const { name } = CreateMeSchema.parse(req.body);
+        const { name, telephone } = CreateMeSchema.parse(req.body);
 
-        const existingUser = await User.findOne({ uid });
+        let existingUser = await User.findOne({ uid });
         if (existingUser) {
-            throw new AppError(400, 'Usuário já existe', 'USER_ALREADY_EXISTS');
+            if (name) existingUser.name = name;
+            if (telephone) existingUser.telephone = telephone;
+            await existingUser.save();
+            return res.status(200).json(createSuccessResponse(existingUser)) as unknown as void;
+        }
+
+        if (!name || !telephone) {
+            throw new AppError(400, 'Nome e telefone são obrigatórios para novos usuários', 'MISSING_FIELDS');
         }
 
         // Determine if they are admin based on claims
@@ -173,10 +187,11 @@ export const createMe = asyncHandler(
         const newUser = await User.create({
             uid,
             name,
+            telephone,
             email,
             role: isAdmin ? 'admin' : 'user',
         });
 
-        res.status(201).json(createSuccessResponse(newUser));
+        return res.status(201).json(createSuccessResponse(newUser)) as unknown as void;
     }
 );

@@ -1,12 +1,24 @@
 // hooks/useReportState.ts
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Product, Section, ClientInfo } from "../types"; // Importe suas interfaces aqui
+import { useMongoUser } from "./useMongoUser";
 
 export function useReportState(initialState?: any) {
+    const { mongoUser } = useMongoUser()
     const [especificador, setEspecificador] = useState(initialState?.especificador || "");
     const [contact, setContact] = useState(initialState?.contact || "");
-    const [consultor, setConsultor] = useState(initialState?.consultor || "");
-    const [consultorPhone, setConsultorPhone] = useState(initialState?.consultorPhone || "");
+    const [consultor, setConsultor] = useState(initialState?.consultor || mongoUser?.name || "");
+    const [consultorPhone, setConsultorPhone] = useState(initialState?.consultorPhone || mongoUser?.telephone || "");
+
+    useEffect(() => {
+        if (!initialState?.consultor && !consultor && mongoUser?.name) {
+            setConsultor(mongoUser.name);
+        }
+        if (!initialState?.consultorPhone && !consultorPhone && mongoUser?.telephone) {
+            setConsultorPhone(mongoUser.telephone);
+        }
+    }, [mongoUser, initialState, consultor, consultorPhone]);
+
     const [sections, setSections] = useState<Section[]>(initialState?.sections || []);
     const [cashDiscount, setCashDiscount] = useState(initialState?.cashDiscount || 0);
     const [deliveryFee, setDeliveryFee] = useState(initialState?.delivery_value || 0);

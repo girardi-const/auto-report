@@ -83,7 +83,7 @@ function DeleteBrandModal({
                     </div>
 
                     <p className="text-gray-500 text-sm text-center leading-relaxed">
-                        Esta ação é <span className="font-bold text-red-600">irreversível</span>. 
+                        Esta ação é <span className="font-bold text-red-600">irreversível</span>.
                         Todos os produtos associados a esta marca serão permanentemente removidos do sistema.
                     </p>
 
@@ -187,7 +187,7 @@ export default function MarcasPage() {
 
             {/* ── Header ───────────────────────────────────────────────── */}
             <div className="px-6 py-6">
-                <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="max-w-5xl px-7 mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-gray-800 font-black text-2xl tracking-tight uppercase">
                             Marcas
@@ -332,11 +332,10 @@ export default function MarcasPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${
-                                                    (b.productCount ?? 0) > 0
-                                                        ? 'bg-primary/10 text-primary'
-                                                        : 'bg-gray-100 text-gray-400'
-                                                }`}>
+                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${(b.productCount ?? 0) > 0
+                                                    ? 'bg-primary/10 text-primary'
+                                                    : 'bg-gray-100 text-gray-400'
+                                                    }`}>
                                                     <Package size={12} />
                                                     {b.productCount ?? 0}
                                                 </span>

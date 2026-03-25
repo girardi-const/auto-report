@@ -28,6 +28,9 @@ export function UserItem({
                 <p className="text-sm text-secondary truncate mt-0.5">
                     {user.email}
                 </p>
+                <p className="text-sm text-secondary truncate mt-0.5">
+                    {user.telephone}
+                </p>
                 <p className="text-[10px] uppercase font-black tracking-widest text-gray-400 mt-1">
                     Criado em{' '}
                     {user.createdAt

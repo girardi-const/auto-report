@@ -296,12 +296,12 @@ export const ReportPDFDocument: React.FC<PDFDocumentProps> = ({
                     {/* Row 2: Especificador */}
                     <View style={styles.clientRow}>
                         <Text style={styles.clientLabel}>Especificador:</Text>
-                        <Text style={styles.clientValue}>{especificador}</Text>
+                        <Text style={styles.clientValue}>{especificador.toUpperCase()}</Text>
                     </View>
                     {/* Row 3: Consultor */}
                     <View style={styles.clientRow}>
                         <Text style={styles.clientLabel}>Consultor:</Text>
-                        <Text style={styles.clientValue}>{consultor}{consultorPhone ? ` - ${consultorPhone}` : ''}</Text>
+                        <Text style={styles.clientValue}>{consultor.toUpperCase()}{consultorPhone ? ` - ${consultorPhone}` : ''}</Text>
                     </View>
                 </View>
             </View>

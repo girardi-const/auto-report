@@ -65,7 +65,6 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
     } = actions;
     const { calculateSubtotal, timers, setLoading } = utils;
 
-    console.log(sections)
     const [generating, setGenerating] = useState(false);
     const [generatingExcel, setGeneratingExcel] = useState(false);
     const [reportTitle, setReportTitle] = useState(initialTitle || "");

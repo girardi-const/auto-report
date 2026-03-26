@@ -128,6 +128,16 @@ const nextConfig: NextConfig = {
         hostname: "docolinstitucional.vtexassets.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "stella.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "nordecor.com.br",
+        pathname: "/**",
+      },
     ],
   },
   async rewrites() {
@@ -191,6 +201,14 @@ const nextConfig: NextConfig = {
       {
         source: "/api/quickstep-images/:path*",
         destination: "https://cdn3.quick-step.com/:path*",
+      },
+      {
+        source: "/api/stella-images/:path*",
+        destination: "https://stella.com.br/:path*",
+      },
+      {
+        source: "/api/nordecor-images/:path*",
+        destination: "https://nordecor.com.br/:path*",
       },
     ];
   },

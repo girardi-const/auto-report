@@ -70,8 +70,42 @@ export default function SyncDecaPage() {
             Authorization: `Bearer ${token}`
         };
 
+        const existingBrands = new Set<string>();
+        try {
+            const brandsRes = await fetch(`${API}/brands`, { headers });
+            if (brandsRes.ok) {
+                const brandsData = await brandsRes.json();
+                brandsData.data.forEach((b: any) => existingBrands.add(b.brand_name.toUpperCase()));
+            }
+        } catch (err) {
+            console.error('Erro ao buscar marcas:', err);
+        }
+
+        const ensureBrandExists = async (brandName: string) => {
+            if (!brandName) return;
+            const upperBrand = brandName.toUpperCase().trim();
+            if (existingBrands.has(upperBrand)) return;
+
+            try {
+                const res = await fetch(`${API}/brands`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ brand_name: upperBrand })
+                });
+                // Status 201 created or 400 (which might mean already exists due to unique constraint)
+                if (res.ok || res.status === 400) {
+                    existingBrands.add(upperBrand);
+                }
+            } catch (err) {
+                console.error(`Erro ao criar marca ${upperBrand}:`, err);
+            }
+        };
+
         const processItem = async (item: DecaProduct) => {
             try {
+                const bName = (item.brand || 'OUTROS').toUpperCase();
+                await ensureBrandExists(bName);
+
                 const getRes = await fetch(`${API}/products/${encodeURIComponent(item.code)}`, { headers });
 
                 if (getRes.ok) {
@@ -81,7 +115,10 @@ export default function SyncDecaPage() {
                     const putRes = await fetch(`${API}/products/${existingProduct._id}`, {
                         method: 'PUT',
                         headers,
-                        body: JSON.stringify({ description: item.name.toUpperCase() }) // DECA products don't have a brand field, so we set a default
+                        body: JSON.stringify({
+                            description: item.name.toUpperCase(),
+                            brand_name: bName
+                        })
                     });
 
                     if (putRes.ok) {
@@ -96,7 +133,7 @@ export default function SyncDecaPage() {
                         product_code: item.code.toString(),
                         description: item.name.toUpperCase(),
                         base_price: item.price || 0,
-                        brand_name: "DOKA" // default brand, as DECA products don't have a brand field
+                        brand_name: bName
                     };
                     if (isValidUrl) {
                         requestBody.imageurl = imgUrl;

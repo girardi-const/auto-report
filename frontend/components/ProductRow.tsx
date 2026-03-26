@@ -61,9 +61,9 @@ export function ProductRow({
     }, [product.units, isUnitsFocused]);
 
     const handleUnitsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const isMT = product.type === "MT";
+        const isDecimal = product.type !== "UN" && !!product.type;
         let val = e.target.value;
-        if (isMT) {
+        if (isDecimal) {
             val = val.replace(/[^0-9.,]/g, "").replace(",", ".");
             setLocalUnits(val);
             const numeric = parseFloat(val);
@@ -312,18 +312,18 @@ export function ProductRow({
             <td className="px-1 py-4">
                 <input
                     type="text"
-                    inputMode={product.type === "MT" ? "decimal" : "numeric"}
+                    inputMode={product.type && product.type !== "UN" ? "decimal" : "numeric"}
                     value={localUnits}
                     onChange={handleUnitsChange}
                     onFocus={() => setIsUnitsFocused(true)}
                     onBlur={() => {
                         setIsUnitsFocused(false);
-                        const isMT = product.type === "MT";
-                        const numValue = isMT ? parseFloat(localUnits) : parseInt(localUnits, 10);
+                        const isDecimal = product.type !== "UN" && !!product.type;
+                        const numValue = isDecimal ? parseFloat(localUnits) : parseInt(localUnits, 10);
                         if (!localUnits || isNaN(numValue) || numValue <= 0) {
                             setLocalUnits("1");
                             onUpdate({ units: 1 });
-                        } else if (!isMT) {
+                        } else if (!isDecimal) {
                             setLocalUnits(numValue.toString());
                             onUpdate({ units: numValue });
                         }
@@ -339,6 +339,9 @@ export function ProductRow({
                 >
                     <option value="UN">UN</option>
                     <option value="MT">MT²</option>
+                    <option value="KG">KG</option>
+                    <option value="LT">LT</option>
+                    <option value="M">M</option>
                 </select>
             </td>
             <td className="px-4 py-4">

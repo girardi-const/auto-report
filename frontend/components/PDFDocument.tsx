@@ -139,7 +139,7 @@ const ProductRow: React.FC<{ product: Product }> = ({ product }) => {
 
             {/* Unit */}
             <Text style={styles.productUnit}>{
-                product.type?.includes("MT") ? "MT²" : "UN"
+                product.type?.includes("MT") ? "MT²" : product.type
             }</Text>
 
             {/* Description */}

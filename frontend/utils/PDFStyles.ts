@@ -170,6 +170,7 @@ export const styles = StyleSheet.create({
     },
     productQty: {
         width: '6%',
+        paddingTop: -0.5,
         textAlign: 'center',
         fontSize: 8.5,
         fontFamily: 'Helvetica',
@@ -179,7 +180,7 @@ export const styles = StyleSheet.create({
         width: '6%',
         textAlign: 'left',
         fontSize: 7.5,
-        color: '#666666',
+        color: '#999696ff',
     },
     productDesc: {
         width: '38%',

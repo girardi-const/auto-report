@@ -31,15 +31,18 @@ interface ReportPayload {
 interface UseReportActionsReturn {
     saving: boolean;
     deleting: boolean;
+    deletingMany: boolean;
     saveReport: (payload: ReportPayload) => Promise<SavedReport>;
     updateReport: (id: string, payload: Partial<ReportPayload>) => Promise<SavedReport>;
     deleteReport: (id: string) => Promise<void>;
+    deleteManyReports: (ids: string[]) => Promise<void>;
 }
 
 export function useReportActions(): UseReportActionsReturn {
     const { getIdToken } = useAuth();
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [deletingMany, setDeletingMany] = useState(false);
 
     const saveReport = async (payload: ReportPayload): Promise<SavedReport> => {
         setSaving(true);
@@ -112,5 +115,27 @@ export function useReportActions(): UseReportActionsReturn {
         }
     };
 
-    return { saving, deleting, saveReport, updateReport, deleteReport };
+    const deleteManyReports = async (ids: string[]): Promise<void> => {
+        setDeletingMany(true);
+        try {
+            const token = await getIdToken();
+            const res = await fetch(`${API}/reports/batch-delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ ids }),
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error?.message || 'Erro ao deletar relatórios');
+            }
+        } finally {
+            setDeletingMany(false);
+        }
+    };
+
+    return { saving, deleting, deletingMany, saveReport, updateReport, deleteReport, deleteManyReports };
 }

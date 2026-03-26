@@ -210,3 +210,37 @@ export const deleteReport = asyncHandler(
         res.json(createSuccessResponse({ message: 'Report deleted successfully' }));
     }
 );
+
+/**
+ * POST /api/v1/reports/batch-delete
+ *
+ * Deletes multiple reports by IDs in one request.
+ * Access: each report must be owned by the caller, or caller is admin.
+ * Body: { ids: string[] }
+ */
+export const batchDeleteReports = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+        const { ids } = req.body as { ids?: string[] };
+
+        if (!Array.isArray(ids) || ids.length === 0) {
+            res.status(400).json({ error: { message: 'ids must be a non-empty array' } });
+            return;
+        }
+
+        const uid = req.firebaseUser!.uid;
+        const isAdmin = !!req.firebaseUser!.admin;
+
+        if (!isAdmin) {
+            // Verify every requested report belongs to the caller
+            const reports = await Report.find({ _id: { $in: ids } }, { creator_id: 1 });
+            const unauthorized = reports.find(r => r.creator_id !== uid);
+            if (unauthorized) {
+                throw createForbiddenError('Você não tem permissão para deletar um ou mais relatórios selecionados');
+            }
+        }
+
+        const result = await Report.deleteMany({ _id: { $in: ids } });
+
+        res.json(createSuccessResponse({ deleted: result.deletedCount }));
+    }
+);

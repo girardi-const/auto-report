@@ -49,8 +49,8 @@ export function DeleteModal({
                     </div>
                     <div className="text-center">
                         <p className="font-black text-secondary text-base">Deletar relatório?</p>
-                        <p className="text-sm text-gray-400 mt-1 font-medium">{reportTitle}</p>
-                        <p className="text-xs text-gray-300 mt-1">Esta ação não pode ser desfeita.</p>
+                        <p className="text-sm text-gray-600 mt-1 font-medium">{reportTitle}</p>
+                        <p className="text-xs text-gray-500 mt-1">Esta ação não pode ser desfeita.</p>
                     </div>
 
                     {error && (

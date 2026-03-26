@@ -6,6 +6,7 @@ import {
     createReport,
     updateReport,
     deleteReport,
+    batchDeleteReports,
 } from '../controllers/reportController';
 
 const router = Router();
@@ -34,6 +35,14 @@ router.get('/report/:reportId', verifyToken, getReport);
  * creator_id is always set from the verified token.
  */
 router.post('/', verifyToken, createReport);
+
+/**
+ * POST /api/v1/reports/batch-delete
+ * verifyToken → deletes multiple reports; each must be owned by caller (or caller is admin).
+ * Must be registered BEFORE /:reportId to avoid route conflicts.
+ */
+router.post('/batch-delete', verifyToken, batchDeleteReports);
+
 
 /**
  * PUT /api/v1/reports/:reportId

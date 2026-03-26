@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 package-lock.json
+vercel.json
 
 # Environment variables
 .env
@@ -36,3 +37,4 @@ coverage/
 
 # Misc
 .cache/
+

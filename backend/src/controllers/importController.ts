@@ -9,7 +9,7 @@ import { DeleteImportQuerySchema, ImportPaginationSchema } from '../validators/i
 import { z } from 'zod';
 import xlsx from 'xlsx';
 import cloudinary from '../config/cloudinary';
-import { scrapeProductImage } from '../services/imageScraperService';
+import { fetchImageBuffer } from '../services/imageScraperService';
 import { registerImport, cancelImport as cancelImportSignal, unregisterImport } from '../services/importCancelRegistry';
 
 /**
@@ -78,19 +78,26 @@ const cleanupCancelledImport = async (importId: string, cloudinaryIds: string[])
     logger.info(`[Import Cancel] Import ${importId} fully cleaned up.`);
 };
 
-// ----- Types used in the 3-phase process -----
+// ----- Types used in the import process -----
 
-/** Data collected in Phase 1 for each valid row */
+/** Data collected for each valid row */
 interface CollectedRow {
     productCode: string;
     description: string;
     basePrice: number;
     brandName: string;
-    /** Image URL from spreadsheet or scraped externally */
+    /**
+     * Final image URL:
+     * - After Phase 1: the original URL from the spreadsheet (or empty string).
+     * - After Phase 2: replaced with the Cloudinary secure_url if upload succeeded.
+     */
     imageUrl: string;
-    /** Downloaded image buffer ready for Cloudinary upload (null if no image or from URL column) */
+    /**
+     * Downloaded image buffer from the spreadsheet URL, ready for Cloudinary upload.
+     * Null if no URL was provided or download failed.
+     */
     imageBuffer: Buffer | null;
-    /** Whether an existing product already has an image (skip upload) */
+    /** Whether an existing product already has a Cloudinary image */
     existingHasImage: boolean;
     /** Whether this product already exists in DB */
     isUpdate: boolean;
@@ -99,9 +106,12 @@ interface CollectedRow {
 /**
  * Process import in 3 sequential phases with cancellation support.
  *
- * Phase 1 — Validate spreadsheet + scrape/download image buffers (no Cloudinary yet)
- * Phase 2 — Upload all collected image buffers to Cloudinary
+ * Phase 1 — Validate spreadsheet + download image buffers from provided URLs (no Cloudinary yet)
+ * Phase 2 — Upload all downloaded image buffers to Cloudinary (normalises hostnames)
  * Phase 3 — Bulk write products & backups to MongoDB
+ *
+ * All product images end up on Cloudinary so there is only one known hostname
+ * and Next.js <Image> never encounters unconfigured remote patterns.
  */
 const processImport = async (importId: string, fileBuffer: Buffer, signal: AbortSignal) => {
     const uploadedCloudinaryIds: string[] = [];
@@ -110,16 +120,19 @@ const processImport = async (importId: string, fileBuffer: Buffer, signal: Abort
         if (!importDoc) return;
 
         // ===== PARSE SPREADSHEET =====
-        const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+        const workbook = xlsx.read(fileBuffer, { type: 'buffer', codepage: 65001 });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         const rawJson: any[] = xlsx.utils.sheet_to_json(worksheet, { defval: '', raw: false });
 
         const RowSchema = z.object({
             'Código do Produto': z.string().min(1, 'Código é obrigatório').trim(),
-            'Nome do Produto': z.string().min(1, 'Nome é obrigatório').trim(),
-            'Preço de Tabela': z.coerce.number().positive('Preço deve ser maior que zero'),
-            'Marca': z.string().min(1, 'Marca é obrigatória').trim(),
+            'Nome do Produto': z.string().min(1, 'Nome é obrigatório').trim().transform(v => v.toUpperCase()),
+            'Preço de Tabela': z.preprocess(
+                (val) => (val === '' || val === null || val === undefined ? 0 : val),
+                z.coerce.number().min(0, 'Preço não pode ser negativo').default(0)
+            ),
+            'Marca': z.string().min(1, 'Marca é obrigatória').trim().transform(v => v.toUpperCase()),
             'Link de Imagem': z.string().trim().optional().default(''),
         });
 
@@ -208,9 +221,9 @@ const processImport = async (importId: string, fileBuffer: Buffer, signal: Abort
         const existingProductMap = new Map(existingProducts.map(p => [p.product_code, p]));
 
         // ================================================================
-        // PHASE 1 — Collect image URLs/buffers (scrape from web, no Cloudinary yet)
+        // PHASE 1 — Download image buffers from spreadsheet URLs
         // ================================================================
-        logger.info(`[Import ${importId}] Phase 1: Collecting image URLs for ${totalRows} products...`);
+        logger.info(`[Import ${importId}] Phase 1: Downloading images for ${totalRows} products...`);
 
         const collectedRows: CollectedRow[] = [];
         let phase1Processed = 0;
@@ -258,16 +271,20 @@ const processImport = async (importId: string, fileBuffer: Buffer, signal: Abort
                 let imageBuffer: Buffer | null = null;
 
                 const existingProduct = existingProductMap.get(productCode);
-                const needsScrape = !imageUrl;
                 const existingHasImage = !!(existingProduct && existingProduct.imageurl);
 
-                // Scrape image if no link provided and product doesn't already have one
-                if (needsScrape && (!existingProduct || !existingHasImage)) {
-                    logger.info(`[Import] No image for "${productCode}", attempting scrape...`);
-                    const scraped = await scrapeProductImage(description, productCode, brandName);
-                    if (scraped) {
-                        imageBuffer = scraped.buffer;
-                        logger.info(`[Import] Scraped image for "${productCode}" from ${scraped.sourceUrl}`);
+                // Download image buffer from the spreadsheet URL so we can re-host on Cloudinary.
+                // This ensures all product images share a single known hostname (res.cloudinary.com)
+                // and Next.js <Image> never encounters unconfigured remote patterns.
+                if (imageUrl) {
+                    logger.info(`[Import] Downloading image for "${productCode}" from ${imageUrl}`);
+                    const buffer = await fetchImageBuffer(imageUrl);
+                    if (buffer) {
+                        imageBuffer = buffer;
+                        logger.info(`[Import] Image downloaded successfully for "${productCode}"`);
+                    } else {
+                        logger.warn(`[Import] Could not download image for "${productCode}", product will be saved without image.`);
+                        imageUrl = '';
                     }
                 }
 
@@ -290,7 +307,7 @@ const processImport = async (importId: string, fileBuffer: Buffer, signal: Abort
         const phase1Results = await Promise.allSettled(
             validRows.map(row => collectRow(row).then(async result => {
                 phase1Processed++;
-                await writeProgress(phase1Processed, 50, 0); // 0-50%
+                await writeProgress(phase1Processed, 50, 0); // 0–50%
                 return result;
             }))
         );
@@ -311,7 +328,9 @@ const processImport = async (importId: string, fileBuffer: Buffer, signal: Abort
         logger.info(`[Import ${importId}] Phase 1 complete: ${collectedRows.length} rows collected, ${failedCount} failed`);
 
         // ================================================================
-        // PHASE 2 — Upload collected image buffers to Cloudinary
+        // PHASE 2 — Upload downloaded image buffers to Cloudinary
+        //   All images will be served from res.cloudinary.com — the single
+        //   whitelisted hostname in next.config.ts.
         // ================================================================
         const rowsNeedingUpload = collectedRows.filter(r => r.imageBuffer !== null);
         logger.info(`[Import ${importId}] Phase 2: Uploading ${rowsNeedingUpload.length} images to Cloudinary...`);
@@ -336,22 +355,22 @@ const processImport = async (importId: string, fileBuffer: Buffer, signal: Abort
                     });
                     uploadedCloudinaryIds.push(result.public_id);
                     row.imageUrl = result.secure_url;
-                    // Store the cloudinaryId on the row for later use in Phase 3
                     (row as any).cloudinaryId = result.public_id;
-                    logger.info(`[Import] Uploaded image for "${row.productCode}": ${result.secure_url}`);
+                    logger.info(`[Import] Uploaded to Cloudinary for "${row.productCode}": ${result.secure_url}`);
                 } catch (err: any) {
-                    logger.warn(`[Import] Cloudinary upload failed for "${row.productCode}": ${err.message}`);
+                    logger.warn(`[Import] Cloudinary upload failed for "${row.productCode}": ${err.message}. Product saved without image.`);
+                    row.imageUrl = '';
                 }
             }
 
             phase2Processed++;
-            await writeProgress(phase2Processed, 40, 50); // 50-90%
+            await writeProgress(phase2Processed, 40, 50); // 50–90%
         }
 
         // Check cancel after Phase 2
         if (signal.aborted) throw new Error('IMPORT_CANCELLED');
 
-        logger.info(`[Import ${importId}] Phase 2 complete: ${uploadedCloudinaryIds.length} images uploaded`);
+        logger.info(`[Import ${importId}] Phase 2 complete: ${uploadedCloudinaryIds.length} images uploaded to Cloudinary`);
 
         // ================================================================
         // PHASE 3 — Save products & backups to MongoDB
@@ -366,6 +385,7 @@ const processImport = async (importId: string, fileBuffer: Buffer, signal: Abort
             const cloudinaryId = (row as any).cloudinaryId as string | undefined;
 
             if (existingProduct) {
+                // Only update imageurl/cloudinaryId if a new image was successfully uploaded
                 const imageUpdate: Record<string, string> = {};
                 if (row.imageUrl) imageUpdate.imageurl = row.imageUrl;
                 if (cloudinaryId) imageUpdate.cloudinaryId = cloudinaryId;
@@ -388,7 +408,7 @@ const processImport = async (importId: string, fileBuffer: Buffer, signal: Abort
                             description: row.description,
                             base_price: row.basePrice,
                             brand_name: row.brandName,
-                            imageurl: row.imageUrl,
+                            imageurl: row.imageUrl || '',
                             ...(cloudinaryId && { cloudinaryId }),
                         }
                     }

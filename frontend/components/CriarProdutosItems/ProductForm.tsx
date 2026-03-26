@@ -46,11 +46,6 @@ export function ProductForm({ brands, onSubmit, loading }: Props) {
         e.preventDefault();
         if (saving) return;
 
-        if (!image) {
-            toast.error("Por favor, selecione uma imagem do produto");
-            return;
-        }
-
         setSaving(true);
         try {
             await onSubmit({

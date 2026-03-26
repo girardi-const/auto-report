@@ -90,47 +90,51 @@ export default function UsersPage() {
     }
 
     return (
-        <div className="min-h-screen mx-auto px-4 py-10 space-y-8">
-            {/* Title */}
-            <div>
-                <h1 className="text-gray-800 font-black text-2xl tracking-tight uppercase">
-                    Gerenciar Usuários
-                </h1>
-                <p className="text-gray-500 text-sm mt-1">
-                    Crie, edite permissões ou remova contas de acesso ao sistema.
-                </p>
+        <div className="min-h-screen bg-muted">
+            {/* ── Page Header ───────────────────────────────────── */}
+            <div className="px-6 py-6">
+                <div className="max-w-5xl mx-auto">
+                    <h1 className="text-gray-800 font-black text-2xl tracking-tight uppercase">
+                        Gerenciar Usuários
+                    </h1>
+                    <p className="text-gray-800/40 text-xs font-medium mt-0.5">
+                        Crie, edite permissões ou remova contas de acesso ao sistema.
+                    </p>
+                </div>
             </div>
 
-            <CreateUserForm
-                name={name}
-                email={email}
-                password={password}
-                telephone={telephone}
-                submitting={submitting}
-                onChange={(field, value) => {
-                    if (field === "name") setName(value);
-                    if (field === "email") setEmail(value);
-                    if (field === "password") setPassword(value);
-                    if (field === "telephone") setTelephone(value);
-                }}
-                onSubmit={handleCreate}
-            />
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-12 flex flex-col gap-5">
 
+                <CreateUserForm
+                    name={name}
+                    email={email}
+                    password={password}
+                    telephone={telephone}
+                    submitting={submitting}
+                    onChange={(field, value) => {
+                        if (field === "name") setName(value);
+                        if (field === "email") setEmail(value);
+                        if (field === "password") setPassword(value);
+                        if (field === "telephone") setTelephone(value);
+                    }}
+                    onSubmit={handleCreate}
+                />
 
-            <UsersList
-                users={users}
-                loading={loading}
-                confirmDelete={confirmDelete}
-                setConfirmDelete={setConfirmDelete}
-                onDelete={handleDelete}
-                onToggle={handleToggle}
-            />
+                <UsersList
+                    users={users}
+                    loading={loading}
+                    confirmDelete={confirmDelete}
+                    setConfirmDelete={setConfirmDelete}
+                    onDelete={handleDelete}
+                    onToggle={handleToggle}
+                />
 
-            {error && (
-                <div className="bg-red-50 border-l-4 border-primary text-red-800 px-4 py-3 rounded-md text-sm font-medium">
-                    {error}
-                </div>
-            )}
+                {error && (
+                    <div className="bg-red-50 border-l-4 border-primary text-red-800 px-4 py-3 rounded-md text-sm font-medium">
+                        {error}
+                    </div>
+                )}
+            </div>
 
             {/* OTP Modal for admin toggle */}
             <OtpModal

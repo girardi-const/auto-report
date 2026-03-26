@@ -39,7 +39,6 @@ export default function CreateProductPage() {
         image: File | null;
     }) => {
         if (saving) return;
-        if (!data.image) return;
 
         setSaving(true);
         try {
@@ -48,7 +47,9 @@ export default function CreateProductPage() {
             formDataToSend.append('description', data.description);
             formDataToSend.append('brand', data.brand);
             formDataToSend.append('price', data.price.replace(/\./g, '').replace(',', '.'));
-            formDataToSend.append('image', data.image);
+            if (data.image) {
+                formDataToSend.append('image', data.image);
+            }
 
             const token = await getIdToken();
             const result = await api.post('/products/upload', formDataToSend, {
@@ -65,25 +66,28 @@ export default function CreateProductPage() {
     };
 
     return (
-        <div className="min-h-screen bg-muted flex flex-col pt-10 px-4 md:px-0 text-secondary">
-            <div className="container mx-auto max-w-4xl pb-20">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div className="min-h-screen bg-muted">
+            {/* ── Page Header ───────────────────────────────────── */}
+            <div className="px-6 py-6">
+                <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-black text-red- uppercase tracking-tighter italic">
-                            Cadastrar <span className="text-primary italic">Novo</span> Produto
+                        <h1 className="text-gray-800 font-black text-2xl tracking-tight uppercase italic">
+                            Cadastrar <span className="text-primary">Novo</span> Produto
                         </h1>
-                        <p className="text-gray-400 font-medium mt-1">Adicione produtos ao catálogo do sistema</p>
+                        <p className="text-gray-800/40 text-xs font-medium mt-0.5">
+                            Adicione produtos ao catálogo do sistema
+                        </p>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-
                         <Link href="/admin/importar" className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-primary hover:text-primary transition-all text-[10px] font-black uppercase tracking-widest text-gray-400 shadow-sm">
                             <FileSpreadsheet size={16} /> Importar Produtos
                         </Link>
-
                     </div>
                 </div>
+            </div>
 
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-12">
                 <ProductForm onSubmit={handleSubmit} brands={brands} loading={saving} />
             </div>
         </div>

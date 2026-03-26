@@ -133,9 +133,13 @@ export class ProductService {
         productData: { code: string; brand: string; price: number, description: string },
         imageBuffer: Buffer
     ): Promise<IProduct> {
-        // Upload image to Cloudinary
+        // Normalize brand name to use as Cloudinary folder
+        const folder = productData.brand.trim().toUpperCase();
+
+        // Upload image to Cloudinary under the brand folder
         const result = await new Promise<any>((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
+                { folder, resource_type: 'image' },
                 (error, result) => {
                     if (error) reject(error);
                     else resolve(result);
@@ -202,8 +206,12 @@ export class ProductService {
                 }
             }
 
+            // Use the product's brand as the Cloudinary folder
+            const folder = (updates.brand_name || existingProduct.brand_name || 'produtos').trim().toUpperCase();
+
             const result = await new Promise<any>((resolve, reject) => {
                 const uploadStream = cloudinary.uploader.upload_stream(
+                    { folder, resource_type: 'image' },
                     (error, result) => {
                         if (error) reject(error);
                         else resolve(result);

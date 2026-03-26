@@ -183,6 +183,7 @@ export default function ProductsPage() {
                     imageFilter={imageFilter}
                     brandOptions={brands.map(b => b.brand_name)}
                     hasFilters={hasFilters}
+                    loading={loading}
                     onSearchChange={handleSearchChange}
                     onBrandChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleBrandClick(e.target.value)}
                     onImageFilterChange={handleImageFilterChange}

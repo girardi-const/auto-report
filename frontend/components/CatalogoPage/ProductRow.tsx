@@ -1,5 +1,3 @@
-'use client';
-
 import { Pencil, Trash2 } from "lucide-react";
 import { ProductThumb } from "@/components/CatalogoPage/ProductThumb";
 import { fmt } from "@/utils/formatters";
@@ -61,4 +59,4 @@ export function ProductRow({ product: p, isAdmin, onEdit, onDelete }: Props) {
             )}
         </tr>
     );
-}
+}

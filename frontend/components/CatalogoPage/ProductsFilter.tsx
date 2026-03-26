@@ -36,8 +36,8 @@ export function ProductsFilters(props: Props) {
                 <input
                     value={rawSearch}
                     onChange={onSearchChange}
-                    placeholder="Buscar por código ou nome…"
-                    className="w-full pl-10 pr-10 py-2.5 text-sm rounded-lg border-2 border-gray-100 focus:border-primary focus:bg-white bg-gray-50 outline-none transition-all"
+                    placeholder="Buscar por código ou nome"
+                    className="w-full pl-10 pr-10 py-2.5 text-sm rounded-lg border-2 border-gray-100 focus:border-primary focus:bg-white bg-gray-50 outline-none transition-all font-medium"
                 />
                 {loading && (
                     <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
@@ -67,4 +67,4 @@ export function ProductsFilters(props: Props) {
         </div>
     );
 }
-
+

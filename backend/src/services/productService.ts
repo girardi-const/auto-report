@@ -84,24 +84,33 @@ export class ProductService {
         const skip = (page - 1) * limit;
         const sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 } as Record<string, 1 | -1>;
 
-        const filter: Record<string, any> = {};
+        const filterList: any[] = [];
+ 
+         if (search) {
+            const keywords = search.trim().split(/\s+/).filter(k => !!k);
+            keywords.forEach(keyword => {
+                filterList.push({
+                    $or: [
+                        { product_code: { $regex: keyword, $options: 'i' } },
+                        { description: { $regex: keyword, $options: 'i' } },
+                        { brand_name: { $regex: keyword, $options: 'i' } }
+                    ]
+                });
+            });
+         }
+ 
+         if (brand) {
+             filterList.push({ brand_name: brand });
+         }
+ 
+         if (imageFilter === 'true') {
+             filterList.push({ imageurl: { $nin: ['', null] } });
+         } else if (imageFilter === 'false') {
+             filterList.push({ imageurl: { $in: ['', null] } });
+         }
+ 
+         const filter = filterList.length > 0 ? { $and: filterList } : {};
 
-        if (search) {
-            filter.$or = [
-                { product_code: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } }
-            ];
-        }
-
-        if (brand) {
-            filter.brand_name = brand;
-        }
-
-        if (imageFilter === 'true') {
-            filter.imageurl = { $nin: ['', null] };
-        } else if (imageFilter === 'false') {
-            filter.imageurl = { $in: ['', null] };
-        }
 
         const [total, products] = await Promise.all([
             Product.countDocuments(filter),

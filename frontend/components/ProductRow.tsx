@@ -276,10 +276,13 @@ export function ProductRow({
                     ))}
                 </select>
             </td>
-            <td className="px-4 py-4">
-                <span className={`${product.priceBase === 0 ? "text-gray-300" : "text-gray-500"} italic text-[11px] font-medium leading-tight block whitespace-normal break-words max-w-[250px]`}>
-                    {product.name}
-                </span>
+            <td className="px-4 py-3 align-middle">
+                <textarea
+                    value={product.name}
+                    onChange={(e) => onUpdate({ name: e.target.value })}
+                    rows={3}
+                    className={`w-full bg-transparent outline-none border-none resize-none italic text-xs font-medium leading-snug break-words whitespace-normal text-start ${product.priceBase === 0 ? "text-gray-300" : "text-gray-500"}`}
+                />
             </td>
             <td className="px-4 py-4 relative">
                 <div className="flex items-center gap-2">

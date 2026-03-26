@@ -81,7 +81,7 @@ export default function SyncDecaPage() {
                     const putRes = await fetch(`${API}/products/${existingProduct._id}`, {
                         method: 'PUT',
                         headers,
-                        body: JSON.stringify({ description: item.name.toUpperCase(), imageurl: item.imageurl }) // DECA products don't have a brand field, so we set a default
+                        body: JSON.stringify({ description: item.name.toUpperCase() }) // DECA products don't have a brand field, so we set a default
                     });
 
                     if (putRes.ok) {
@@ -96,7 +96,7 @@ export default function SyncDecaPage() {
                         product_code: item.code.toString(),
                         description: item.name.toUpperCase(),
                         base_price: item.price || 0,
-                        brand_name: "DOCOL" // default brand, as DECA products don't have a brand field
+                        brand_name: "DOKA" // default brand, as DECA products don't have a brand field
                     };
                     if (isValidUrl) {
                         requestBody.imageurl = imgUrl;

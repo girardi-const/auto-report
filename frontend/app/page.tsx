@@ -55,6 +55,14 @@ export default function Home() {
       icon: History,
       glowColor: "#22c55e", // green-500
       delay: "-2s"
+    },
+    {
+      href: "/marcas",
+      title: "Marcas",
+      description: "Visualize e gerencie as marcas cadastradas no sistema.",
+      icon: Tag,
+      glowColor: "#14b8a6", // teal-500
+      delay: "-4s"
     }
   ];
 
@@ -66,14 +74,6 @@ export default function Home() {
       icon: PackagePlus,
       glowColor: "#a855f7", // purple-500
       delay: "-3s"
-    });
-    cards.push({
-      href: "/marcas",
-      title: "Marcas",
-      description: "Visualize e gerencie as marcas cadastradas no sistema.",
-      icon: Tag,
-      glowColor: "#14b8a6", // teal-500
-      delay: "-4s"
     });
     cards.push({
       href: "/usuarios",

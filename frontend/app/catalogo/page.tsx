@@ -67,7 +67,7 @@ export default function ProductsPage() {
         imageFilter
     });
 
-    const { brandNames: brandOptions } = useBrands();
+    const { brands } = useBrands();
 
     // Modals state
     const [editProduct, setEditProduct] = useState<CatalogProduct | null>(null);
@@ -90,11 +90,11 @@ export default function ProductsPage() {
         debounceRef.current = setTimeout(() => {
             setSearch(val.trim());
             setPage(1);
-        }, 300);
+        }, 250);
     }, []);
 
-    const handleBrandChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-        setBrand(e.target.value);
+    const handleBrandClick = useCallback((brandName: string | null) => {
+        setBrand(brandName || '');
         setPage(1);
     }, []);
 
@@ -181,10 +181,10 @@ export default function ProductsPage() {
                     rawSearch={rawSearch}
                     brand={brand}
                     imageFilter={imageFilter}
-                    brandOptions={brandOptions}
+                    brandOptions={brands.map(b => b.brand_name)}
                     hasFilters={hasFilters}
                     onSearchChange={handleSearchChange}
-                    onBrandChange={handleBrandChange}
+                    onBrandChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleBrandClick(e.target.value)}
                     onImageFilterChange={handleImageFilterChange}
                     onClear={clearFilters}
                 />

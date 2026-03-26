@@ -87,14 +87,35 @@ export class ProductService {
         const filter: Record<string, any> = {};
 
         if (search) {
-            filter.$or = [
-                { product_code: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } }
-            ];
+            // Split query into tokens and require ALL tokens to match at least one field
+            // This gives Google-like behaviour: "rainbow piso" finds products with both words
+            const tokens = search.trim().split(/\s+/).filter(Boolean);
+
+            if (tokens.length === 1) {
+                // Single token: match anywhere across the three fields
+                const rx = { $regex: tokens[0], $options: 'i' };
+                filter.$or = [
+                    { product_code: rx },
+                    { description: rx },
+                    { brand_name: rx },
+                ];
+            } else {
+                // Multiple tokens: each token must hit at least one field (AND across tokens)
+                filter.$and = tokens.map((token) => {
+                    const rx = { $regex: token, $options: 'i' };
+                    return {
+                        $or: [
+                            { product_code: rx },
+                            { description: rx },
+                            { brand_name: rx },
+                        ],
+                    };
+                });
+            }
         }
 
         if (brand) {
-            filter.brand_name = brand;
+            filter.brand_name = { $regex: `^${brand}$`, $options: 'i' };
         }
 
         if (imageFilter === 'true') {

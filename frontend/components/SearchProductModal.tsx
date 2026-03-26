@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Search, X, Loader2, PackageSearch, Info, ImageOff } from "lucide-react";
+import { Search, X, Loader2, PackageSearch, ImageOff, Tag, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { CatalogProduct } from "../types";
 import { formatCurrency } from "../utils/formatters";
@@ -13,23 +13,55 @@ interface SearchProductModalProps {
     onSelect: (product: CatalogProduct) => void;
 }
 
+interface Brand {
+    _id: string;
+    brand_name: string;
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
 export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductModalProps) {
     const { getIdToken } = useAuth();
     const [query, setQuery] = useState("");
+    const [activeBrand, setActiveBrand] = useState<string | null>(null);
     const [results, setResults] = useState<CatalogProduct[]>([]);
+    const [brands, setBrands] = useState<Brand[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
+    const [total, setTotal] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Focus input when modal opens
+    // Load brands once on mount
+    useEffect(() => {
+        (async () => {
+            try {
+                const token = await getIdToken();
+                const res = await fetch(`${API_URL}/brands`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                const list: Brand[] = Array.isArray(data?.data)
+                    ? data.data
+                    : Array.isArray(data)
+                    ? data
+                    : [];
+                setBrands(list);
+            } catch {
+                /* ignore */
+            }
+        })();
+    }, [getIdToken]);
+
+    // Focus input when modal opens / reset state
     useEffect(() => {
         if (isOpen) {
             setQuery("");
             setResults([]);
             setHasSearched(false);
+            setActiveBrand(null);
+            setTotal(0);
             setTimeout(() => inputRef.current?.focus(), 80);
         }
     }, [isOpen]);
@@ -45,29 +77,47 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
     }, [isOpen, onClose]);
 
     const search = useCallback(
-        async (term: string) => {
-            if (!term.trim() || term.trim().length < 2) {
+        async (term: string, brand: string | null) => {
+            const trimmed = term.trim();
+            const hasTerm = trimmed.length >= 1;
+            const hasBrand = !!brand;
+
+            if (!hasTerm && !hasBrand) {
                 setResults([]);
                 setHasSearched(false);
+                setTotal(0);
                 return;
             }
+
             try {
                 setIsLoading(true);
                 const token = await getIdToken();
-                const url = `${API_URL}/products?search=${encodeURIComponent(term.trim())}&limit=18&sortBy=updatedAt&sortOrder=desc`;
-                const res = await fetch(url, {
+                const params = new URLSearchParams({
+                    sortBy: "updatedAt",
+                    sortOrder: "desc",
+                    limit: "40",
+                    page: "1",
+                });
+                if (trimmed) params.set("search", trimmed);
+                if (brand) params.set("brand", brand);
+
+                const res = await fetch(`${API_URL}/products?${params.toString()}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 if (!res.ok) throw new Error("Erro na busca");
                 const data = await res.json();
-                // createSuccessResponse wraps in { data: { data: [...], total, page, totalPages } }
+
                 const list: CatalogProduct[] = Array.isArray(data?.data?.data)
                     ? data.data.data
                     : [];
+                const count: number = data?.data?.total ?? list.length;
+
                 setResults(list);
+                setTotal(count);
                 setHasSearched(true);
             } catch {
                 setResults([]);
+                setTotal(0);
                 setHasSearched(true);
             } finally {
                 setIsLoading(false);
@@ -76,11 +126,31 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
         [getIdToken]
     );
 
+    // Trigger search whenever query or brand changes
+    const triggerSearch = (term: string, brand: string | null) => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => search(term, brand), 250);
+    };
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         setQuery(val);
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => search(val), 400);
+        triggerSearch(val, activeBrand);
+    };
+
+    const handleBrandClick = (brandName: string) => {
+        const next = activeBrand === brandName ? null : brandName;
+        setActiveBrand(next);
+        triggerSearch(query, next);
+    };
+
+    const handleClear = () => {
+        setQuery("");
+        setResults([]);
+        setHasSearched(false);
+        setActiveBrand(null);
+        setTotal(0);
+        inputRef.current?.focus();
     };
 
     const handleSelect = (product: CatalogProduct) => {
@@ -88,21 +158,29 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
         onClose();
     };
 
+    // Brands to highlight: if query matches a brand name, surface it first
+    const sortedBrands = [...brands].sort((a, b) => {
+        const q = query.toLowerCase();
+        const aMatch = q && a.brand_name.toLowerCase().includes(q);
+        const bMatch = q && b.brand_name.toLowerCase().includes(q);
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+        return a.brand_name.localeCompare(b.brand_name);
+    });
+
     if (!isOpen) return null;
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-start justify-center pt-[8vh] bg-black/60 backdrop-blur-sm"
-            onClick={(e) => {
-                if (e.target === e.currentTarget) onClose();
-            }}
+            className="fixed inset-0 z-50 flex items-start justify-center pt-[6vh] bg-black/60 backdrop-blur-sm"
+            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
             <div
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden"
-                style={{ animation: "modalSlideIn 0.18s cubic-bezier(0.22,1,0.36,1)" }}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden flex flex-col"
+                style={{ maxHeight: "88vh", animation: "modalSlideIn 0.18s cubic-bezier(0.22,1,0.36,1)" }}
             >
-                {/* Header */}
-                <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-gray-100">
+                {/* ── Header ── */}
+                <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
                     <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <PackageSearch size={18} className="text-primary" />
                     </div>
@@ -111,7 +189,7 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
                             Buscar Produto
                         </h2>
                         <p className="text-[10px] text-gray-400 font-medium mt-0.5">
-                            Pesquise pelo nome ou marca do produto
+                            Pesquise pelo nome, código ou marca — busca inteligente por palavras-chave
                         </p>
                     </div>
                     <button
@@ -122,26 +200,8 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
                     </button>
                 </div>
 
-                {/* Info banners */}
-                <div className="mx-5 mt-4 flex flex-col gap-2">
-                    {/* How it works */}
-                    <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-xl px-3.5 py-2.5">
-                        <Info size={13} className="text-blue-500 flex-shrink-0 mt-0.5" />
-                        <p className="text-[11px] text-blue-700 leading-relaxed font-medium">
-                            A busca encontra resultados <strong>similares</strong> pelo nome, descrição ou marca — funciona como uma busca aproximada por texto.
-                        </p>
-                    </div>
-                    {/* Accuracy warning */}
-                    <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-100 rounded-xl px-3.5 py-2.5">
-                        <span className="flex-shrink-0 text-amber-500 text-[13px] mt-px">⚠️</span>
-                        <p className="text-[11px] text-amber-700 leading-relaxed font-medium">
-                            A busca por nome <strong>não é tão precisa</strong> quanto inserir o código diretamente. Se você conhece o código do produto, prefira digitá-lo na coluna <strong>Código</strong> para garantir o resultado correto.
-                        </p>
-                    </div>
-                </div>
-
-                {/* Search Input */}
-                <div className="relative mx-5 mt-3">
+                {/* ── Search Input ── */}
+                <div className="relative mx-5 mt-4 flex-shrink-0">
                     <Search
                         size={15}
                         className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
@@ -151,8 +211,8 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
                         type="text"
                         value={query}
                         onChange={handleChange}
-                        placeholder="Ex: torneira, chuveiro, DECA..."
-                        className="w-full pl-10 pr-10 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:bg-white bg-gray-50 outline-none text-sm font-medium text-gray-700 placeholder:text-gray-300 transition-all"
+                        placeholder="Ex: rainbow piso, chuveiro, DECA..."
+                        className="w-full pl-10 pr-9 py-3 rounded-xl border-2 border-gray-100 focus:border-primary focus:bg-white bg-gray-50 outline-none text-sm font-medium text-gray-700 placeholder:text-gray-300 transition-all"
                     />
                     {isLoading && (
                         <Loader2
@@ -160,14 +220,9 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
                             className="absolute right-3.5 top-1/2 -translate-y-1/2 animate-spin text-primary"
                         />
                     )}
-                    {!isLoading && query && (
+                    {!isLoading && (query || activeBrand) && (
                         <button
-                            onClick={() => {
-                                setQuery("");
-                                setResults([]);
-                                setHasSearched(false);
-                                inputRef.current?.focus();
-                            }}
+                            onClick={handleClear}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors"
                         >
                             <X size={14} />
@@ -175,19 +230,78 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
                     )}
                 </div>
 
-                {/* Results */}
-                <div className="mt-3 mb-5 mx-5 max-h-[360px] overflow-y-auto rounded-xl border border-gray-100 bg-gray-50/50">
+                {/* ── Brand Filter Chips ── */}
+                {sortedBrands.length > 0 && (
+                    <div className="mx-5 mt-3 flex-shrink-0">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                            <Tag size={10} className="text-gray-300" />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-gray-300">
+                                Filtrar por marca
+                            </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 max-h-[72px] overflow-y-auto pb-0.5" style={{ scrollbarWidth: "none" }}>
+                            {sortedBrands.map((b) => {
+                                const isActive = activeBrand === b.brand_name;
+                                const isHighlighted = !isActive && query && b.brand_name.toLowerCase().includes(query.toLowerCase());
+                                return (
+                                    <button
+                                        key={b._id}
+                                        onClick={() => handleBrandClick(b.brand_name)}
+                                        className={`
+                                            px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border
+                                            ${isActive
+                                                ? "bg-primary text-white border-primary shadow-sm"
+                                                : isHighlighted
+                                                ? "bg-primary/10 text-primary border-primary/30"
+                                                : "bg-gray-50 text-gray-400 border-gray-100 hover:bg-gray-100 hover:text-gray-600"
+                                            }
+                                        `}
+                                    >
+                                        {b.brand_name}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Results header ── */}
+                {hasSearched && !isLoading && (
+                    <div className="mx-5 mt-3 flex items-center justify-between flex-shrink-0">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-300">
+                            {results.length === 0
+                                ? "Nenhum resultado"
+                                : total > results.length
+                                ? `${results.length} de ${total} resultados`
+                                : `${results.length} resultado${results.length !== 1 ? "s" : ""}`}
+                        </span>
+                        {activeBrand && (
+                            <button
+                                onClick={() => { setActiveBrand(null); triggerSearch(query, null); }}
+                                className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-colors"
+                            >
+                                <X size={9} /> Limpar marca
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {/* ── Results List ── */}
+                <div className="mt-2 mb-4 mx-5 flex-1 overflow-y-auto rounded-xl border border-gray-100 bg-gray-50/50 min-h-[120px]">
                     {!hasSearched && !isLoading && (
-                        <div className="flex flex-col items-center justify-center py-12 text-gray-300 gap-3">
+                        <div className="flex flex-col items-center justify-center py-10 text-gray-300 gap-3">
                             <Search size={32} strokeWidth={1.5} />
                             <p className="text-[11px] font-bold uppercase tracking-widest text-gray-300">
                                 Digite para pesquisar
+                            </p>
+                            <p className="text-[10px] text-gray-200 font-medium px-8 text-center">
+                                Ou selecione uma marca acima para ver todos os produtos
                             </p>
                         </div>
                     )}
 
                     {isLoading && (
-                        <div className="flex flex-col items-center justify-center py-12 gap-3">
+                        <div className="flex flex-col items-center justify-center py-10 gap-3">
                             <Loader2 size={28} className="animate-spin text-primary/40" />
                             <p className="text-[11px] font-bold uppercase tracking-widest text-gray-300">
                                 Buscando...
@@ -196,14 +310,14 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
                     )}
 
                     {!isLoading && hasSearched && results.length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-12 gap-3">
+                        <div className="flex flex-col items-center justify-center py-10 gap-3">
                             <PackageSearch size={32} strokeWidth={1.5} className="text-gray-200" />
-                            <div className="text-center">
+                            <div className="text-center px-6">
                                 <p className="text-[12px] font-black text-gray-400 uppercase tracking-wider">
                                     Nenhum produto encontrado
                                 </p>
                                 <p className="text-[10px] text-gray-300 mt-1 font-medium">
-                                    Tente um termo diferente ou verifique o código
+                                    Tente palavras diferentes ou remova filtros de marca
                                 </p>
                             </div>
                         </div>
@@ -247,14 +361,17 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
                                         </p>
                                     </div>
 
-                                    {/* Price */}
-                                    <div className="flex-shrink-0 text-right">
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                                            Preço base
-                                        </p>
-                                        <p className="text-sm font-black text-secondary">
-                                            {formatCurrency(product.base_price)}
-                                        </p>
+                                    {/* Price + arrow */}
+                                    <div className="flex-shrink-0 text-right flex items-center gap-1.5">
+                                        <div>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                                                Preço base
+                                            </p>
+                                            <p className="text-sm font-black text-secondary">
+                                                {formatCurrency(product.base_price)}
+                                            </p>
+                                        </div>
+                                        <ChevronRight size={14} className="text-gray-200 group-hover:text-primary/40 transition-colors" />
                                     </div>
                                 </button>
                             ))}

@@ -27,10 +27,14 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
     const [results, setResults] = useState<CatalogProduct[]>([]);
     const [brands, setBrands] = useState<Brand[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
     const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
     const inputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Keep a stable ref to the current query/brand for loadMore
+    const lastQueryRef = useRef<{ term: string; brand: string | null }>({ term: "", brand: null });
 
     // Load brands once on mount
     useEffect(() => {
@@ -45,8 +49,8 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
                 const list: Brand[] = Array.isArray(data?.data)
                     ? data.data
                     : Array.isArray(data)
-                    ? data
-                    : [];
+                        ? data
+                        : [];
                 setBrands(list);
             } catch {
                 /* ignore */
@@ -62,6 +66,8 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
             setHasSearched(false);
             setActiveBrand(null);
             setTotal(0);
+            setPage(1);
+            lastQueryRef.current = { term: "", brand: null };
             setTimeout(() => inputRef.current?.focus(), 80);
         }
     }, [isOpen]);
@@ -76,8 +82,8 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
         return () => window.removeEventListener("keydown", handle);
     }, [isOpen, onClose]);
 
-    const search = useCallback(
-        async (term: string, brand: string | null) => {
+    const fetchPage = useCallback(
+        async (term: string, brand: string | null, targetPage: number, append: boolean) => {
             const trimmed = term.trim();
             const hasTerm = trimmed.length >= 1;
             const hasBrand = !!brand;
@@ -90,13 +96,15 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
             }
 
             try {
-                setIsLoading(true);
+                if (append) setIsLoadingMore(true);
+                else setIsLoading(true);
+
                 const token = await getIdToken();
                 const params = new URLSearchParams({
                     sortBy: "updatedAt",
                     sortOrder: "desc",
-                    limit: "40",
-                    page: "1",
+                    page: String(targetPage),
+                    limit: "20",
                 });
                 if (trimmed) params.set("search", trimmed);
                 if (brand) params.set("brand", brand);
@@ -112,19 +120,37 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
                     : [];
                 const count: number = data?.data?.total ?? list.length;
 
-                setResults(list);
+                setResults((prev) => append ? [...prev, ...list] : list);
                 setTotal(count);
+                setPage(targetPage);
                 setHasSearched(true);
             } catch {
-                setResults([]);
-                setTotal(0);
-                setHasSearched(true);
+                if (!append) {
+                    setResults([]);
+                    setTotal(0);
+                    setHasSearched(true);
+                }
             } finally {
                 setIsLoading(false);
+                setIsLoadingMore(false);
             }
         },
         [getIdToken]
     );
+
+    const search = useCallback(
+        (term: string, brand: string | null) => {
+            lastQueryRef.current = { term, brand };
+            setPage(1);
+            fetchPage(term, brand, 1, false);
+        },
+        [fetchPage]
+    );
+
+    const loadMore = () => {
+        const nextPage = page + 1;
+        fetchPage(lastQueryRef.current.term, lastQueryRef.current.brand, nextPage, true);
+    };
 
     // Trigger search whenever query or brand changes
     const triggerSearch = (term: string, brand: string | null) => {
@@ -150,6 +176,8 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
         setHasSearched(false);
         setActiveBrand(null);
         setTotal(0);
+        setPage(1);
+        lastQueryRef.current = { term: "", brand: null };
         inputRef.current?.focus();
     };
 
@@ -252,8 +280,8 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
                                             ${isActive
                                                 ? "bg-primary text-white border-primary shadow-sm"
                                                 : isHighlighted
-                                                ? "bg-primary/10 text-primary border-primary/30"
-                                                : "bg-gray-50 text-gray-400 border-gray-100 hover:bg-gray-100 hover:text-gray-600"
+                                                    ? "bg-primary/10 text-primary border-primary/30"
+                                                    : "bg-gray-50 text-gray-400 border-gray-100 hover:bg-gray-100 hover:text-gray-600"
                                             }
                                         `}
                                     >
@@ -272,8 +300,8 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
                             {results.length === 0
                                 ? "Nenhum resultado"
                                 : total > results.length
-                                ? `${results.length} de ${total} resultados`
-                                : `${results.length} resultado${results.length !== 1 ? "s" : ""}`}
+                                    ? `${results.length} de ${total} resultados`
+                                    : `${results.length} resultado${results.length !== 1 ? "s" : ""}`}
                         </span>
                         {activeBrand && (
                             <button
@@ -375,6 +403,32 @@ export function SearchProductModal({ isOpen, onClose, onSelect }: SearchProductM
                                     </div>
                                 </button>
                             ))}
+
+                            {/* ── Mostrar mais ── */}
+                            {results.length < total && (
+                                <div className="flex items-center justify-center py-3 border-t border-gray-100">
+                                    <button
+                                        onClick={loadMore}
+                                        disabled={isLoadingMore}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest text-primary border-2 border-primary/20 hover:bg-primary/5 hover:border-primary/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isLoadingMore ? (
+                                            <>
+                                                <Loader2 size={12} className="animate-spin" />
+                                                Carregando...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ChevronRight size={12} className="rotate-90" />
+                                                Mostrar mais
+                                                <span className="text-gray-300 font-bold normal-case tracking-normal">
+                                                    ({total - results.length} restantes)
+                                                </span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

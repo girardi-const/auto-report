@@ -1,6 +1,5 @@
-// hooks/useReportState.ts
 import { useState, useRef, useEffect } from "react";
-import { Product, Section, ClientInfo } from "../types"; // Importe suas interfaces aqui
+import { Product, Section, ClientInfo, CartItem } from "../types"; // Importe suas interfaces aqui
 import { useMongoUser } from "./useMongoUser";
 
 export function useReportState(initialState?: any) {
@@ -81,10 +80,32 @@ export function useReportState(initialState?: any) {
             priceBase: 0,
             originalPriceBase: 0,
             image: "",
+            type: "UN",
         };
         setSections(prev => prev.map(s =>
             s.id === sectionId ? { ...s, products: [...s.products, { ...newProduct, margin: s.margin_section || 0 }] } : s
         ));
+    };
+
+    const batchAddProducts = (sectionId: string, items: CartItem[]) => {
+        setSections(prev => prev.map(s => {
+            if (s.id !== sectionId) return s;
+            const newProducts: Product[] = items.map(item => ({
+                id: crypto.randomUUID(),
+                dbId: item.product._id,
+                code: item.product.product_code,
+                brand: item.product.brand_name,
+                name: item.product.description,
+                units: item.quantity,
+                margin: s.margin_section || 0,
+                discount: 0,
+                priceBase: item.product.base_price,
+                originalPriceBase: item.product.base_price,
+                image: item.product.imageurl ?? "",
+                type: "UN",
+            }));
+            return { ...s, products: [...s.products, ...newProducts] };
+        }));
     };
 
     const removeProduct = (sectionId: string, productId: string) => {
@@ -116,7 +137,7 @@ export function useReportState(initialState?: any) {
         state: { especificador, contact, consultor, consultorPhone, sections, cashDiscount, deliveryFee, loading, clientInfo },
         actions: {
             setEspecificador, setContact, setConsultor, setConsultorPhone,
-            setSections, setCashDiscount, setDeliveryFee, addSection, addProduct, updateProduct,
+            setSections, setCashDiscount, setDeliveryFee, addSection, addProduct, batchAddProducts, updateProduct,
             updateSectionMargin,
             removeSection, removeProduct, updateSectionName, updateClientInfo, clearClientInfo
         },

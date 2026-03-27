@@ -75,6 +75,7 @@ export interface SectionCardProps {
         updateProduct: (sectionId: string, productId: string, updates: Partial<Product>) => void;
         removeProduct: (sectionId: string, productId: string) => void;
         addProduct: (sectionId: string) => void;
+        batchAddProducts: (sectionId: string, items: CartItem[]) => void;
         updateSectionDiscount: (id: string, discount: number) => void;
         updateSectionMargin: (id: string, margin: number) => void;
     };
@@ -136,4 +137,9 @@ export interface ImageUploadProps {
     image: File | null;
     previewUrl: string | null;
     onImageChange: (file: File | null) => void;
+}
+
+export interface CartItem {
+  product: CatalogProduct;
+  quantity: number;
 }

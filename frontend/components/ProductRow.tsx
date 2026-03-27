@@ -246,7 +246,7 @@ export function ProductRow({
                     ) : product.dbId ? (
                         product.image ? (
                             <>
-                                <Image src={product.image} alt={product.name} width={68} height={68} className="w-full h-full object-cover" />
+                                <Image src={product.image} alt={product.name} width={68} height={68} className="w-full h-full object-cover" unoptimized />
                                 <label className="absolute inset-0 bg-black/50 opacity-0 group-hover/image:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer">
                                     <UploadCloud size={16} className="text-white mb-1" />
                                     <span className="text-[8px] font-black text-white uppercase tracking-widest text-center px-1">Alterar</span>
@@ -260,7 +260,7 @@ export function ProductRow({
                             </label>
                         )
                     ) : (
-                        <Image src={product.image || "/placeholder.webp"} alt="Placeholder" width={68} height={68} className="w-full h-full object-cover" />
+                        <Image src={product.image || "/placeholder.webp"} alt="Placeholder" width={68} height={68} className="w-full h-full object-cover" unoptimized />
                     )}
                 </div>
             </td>

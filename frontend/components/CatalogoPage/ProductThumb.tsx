@@ -22,6 +22,7 @@ export function ProductThumb({ src }: { src: string }) {
                 sizes="48px"
                 className="object-contain rounded-lg"
                 loading="lazy"
+                unoptimized
                 onError={() => setErr(true)}
             />
         </div>

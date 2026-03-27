@@ -60,11 +60,12 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
     const { especificador, contact, consultor, consultorPhone, sections, cashDiscount, deliveryFee, loading, clientInfo } = state;
     const {
         setEspecificador, setContact, setConsultor, setConsultorPhone,
-        setSections, setCashDiscount, setDeliveryFee, addSection, addProduct, updateProduct,
+        setSections, setCashDiscount, setDeliveryFee, addSection, addProduct, batchAddProducts, updateProduct,
         removeSection, removeProduct, updateSectionName, updateClientInfo, clearClientInfo, updateSectionMargin
     } = actions;
     const { calculateSubtotal, timers, setLoading } = utils;
 
+    console.log(sections)
     const [generating, setGenerating] = useState(false);
     const [generatingExcel, setGeneratingExcel] = useState(false);
     const [reportTitle, setReportTitle] = useState(initialTitle || "");
@@ -291,6 +292,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
                             updateProduct,
                             removeProduct,
                             addProduct,
+                            batchAddProducts,
                             updateSectionMargin,
                             updateSectionDiscount: (id, discount) => setSections(sections.map(s => s.id === id ? { ...s, discount } : s))
                         }}

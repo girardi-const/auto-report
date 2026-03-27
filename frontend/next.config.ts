@@ -178,6 +178,26 @@ const nextConfig: NextConfig = {
         hostname: "www.gabcer.com.br",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "avantlux.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "avantlux.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "www.avantlux.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "www.avantlux.com.br",
+        pathname: "/**",
+      },
     ],
   },
   async rewrites() {
@@ -265,6 +285,14 @@ const nextConfig: NextConfig = {
       {
         source: "/api/gabcer2-images/:path*",
         destination: "https://www.gabcer.com.br/:path*",
+      },
+      {
+        source: "/api/avant-images/:path*",
+        destination: "https://avantlux.com.br/:path*",
+      },
+      {
+        source: "/api/avant2-images/:path*",
+        destination: "https://www.avantlux.com.br/:path*",
       },
     ];
   },

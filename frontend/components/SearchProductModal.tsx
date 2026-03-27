@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Search, X, Loader2, PackageSearch, ImageOff, Tag, ChevronRight, Plus } from "lucide-react";
+import { Search, X, Loader2, PackageSearch, ImageOff, Tag, ChevronRight, Plus, Package } from "lucide-react";
 import Image from "next/image";
 import { CatalogProduct, CartItem } from "../types";
 import { formatCurrency } from "../utils/formatters";
@@ -459,7 +459,7 @@ export function SearchProductModal({ isOpen, onClose, onSelect, onConfirm, multi
                     <div className="w-96 bg-white border-l border-gray-100 flex flex-col shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.05)] animate-in slide-in-from-right-4 duration-300">
                         <div className="p-5 border-b border-gray-50 flex items-center gap-2">
                             <div className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary">
-                                <PackageSearch size={16} />
+                                <Package size={16} />
                             </div>
                             <h3 className="text-xs font-black uppercase tracking-widest text-gray-800">Produtos Selecionados</h3>
                             <span className="ml-auto bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded-full">

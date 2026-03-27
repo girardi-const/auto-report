@@ -138,6 +138,46 @@ const nextConfig: NextConfig = {
         hostname: "nordecor.com.br",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "www.senseceramica.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "www.senseceramica.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "senseceramica.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "senseceramica.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "gabcer.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "gabcer.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "www.gabcer.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "www.gabcer.com.br",
+        pathname: "/**",
+      },
     ],
   },
   async rewrites() {
@@ -209,6 +249,22 @@ const nextConfig: NextConfig = {
       {
         source: "/api/nordecor-images/:path*",
         destination: "https://nordecor.com.br/:path*",
+      },
+      {
+        source: "/api/sense-images/:path*",
+        destination: "https://www.senseceramica.com.br/:path*",
+      },
+      {
+        source: "/api/sense2-images/:path*",
+        destination: "https://senseceramica.com.br/:path*",
+      },
+      {
+        source: "/api/gabcer-images/:path*",
+        destination: "https://gabcer.com.br/:path*",
+      },
+      {
+        source: "/api/gabcer2-images/:path*",
+        destination: "https://www.gabcer.com.br/:path*",
       },
     ];
   },

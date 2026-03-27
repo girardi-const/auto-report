@@ -1,10 +1,11 @@
 import { ImageUploadProps } from "@/types";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { getProxyImageUrl } from "@/utils/image";
 
 
 export function ImageUpload({ image, previewUrl, onImageChange }: ImageUploadProps) {
-    const [internalPreview, setInternalPreview] = useState<string | null>(previewUrl);
+    const [internalPreview, setInternalPreview] = useState<string | null>(getProxyImageUrl(previewUrl) ?? null);
 
     useEffect(() => {
         if (image) {
@@ -12,9 +13,9 @@ export function ImageUpload({ image, previewUrl, onImageChange }: ImageUploadPro
             setInternalPreview(url);
             return () => URL.revokeObjectURL(url);
         } else {
-            setInternalPreview(null);
+            setInternalPreview(getProxyImageUrl(previewUrl) ?? null);
         }
-    }, [image]);
+    }, [image, previewUrl]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;

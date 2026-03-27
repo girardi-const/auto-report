@@ -28,6 +28,7 @@ import {
     EyeIcon,
 } from 'lucide-react';
 import Image from 'next/image';
+import { getProxyImageUrl } from '../../../utils/image';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -383,7 +384,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                                                             <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{p.product_id}</span>
                                                         </td>
                                                         <td className="px-6 py-3">
-                                                            <Image src={p.image_url || '/placeholder.webp'} alt={p.product_name} width={40} height={40} className="w-16 h-16 object-cover" unoptimized />
+                                                            <Image src={getProxyImageUrl(p.image_url) || '/placeholder.webp'} alt={p.product_name} width={40} height={40} className="w-16 h-16 object-cover" unoptimized />
                                                         </td>
                                                         <td className="px-6 py-3 text-center font-medium text-gray-600">{p.quantity}</td>
                                                         <td className="px-6 py-3 text-right font-medium text-gray-600">{formatCurrency(p.price)}</td>

@@ -3,6 +3,7 @@ import {
     Document, Page, Text, View, Image, Font,
 } from '@react-pdf/renderer';
 import { styles } from '../utils/PDFStyles';
+import { getProxyImageUrl } from '@/utils/image';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -62,21 +63,6 @@ const effectivePrice = (p: Product): number => {
     return withMargin * (1 - (p.discount || 0) / 100);
 };
 
-const proxyImage = (url?: string): string | undefined => {
-    if (!url) return undefined;
-
-    if (url.startsWith('/')) return url;
-
-    // Proxy all external images through our specific server route
-    // This bypasses CORS, fixes TLS issues, converts images to PNG,
-    // and satisfies react-pdf's extension checks by adding &ext=.png
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-        const endpoint = `/api/proxy-image?url=${encodeURIComponent(url)}&ext=.png`;
-        return typeof window !== 'undefined' ? `${window.location.origin}${endpoint}` : endpoint;
-    }
-
-    return url;
-};
 
 // ─── Sub-components ─────────────────────────────────────────────
 
@@ -130,7 +116,7 @@ const ProductRow: React.FC<{ product: Product }> = ({ product }) => {
     const subtotal = price * product.units;
     const [pCur, pVal] = splitPrice(price);
     const [sCur, sVal] = splitPrice(subtotal);
-    const imgSrc = proxyImage(product.image);
+    const imgSrc = getProxyImageUrl(product.image);
 
     return (
         <View style={styles.productRow} wrap={false}>

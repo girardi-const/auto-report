@@ -6,6 +6,7 @@ import Image from "next/image";
 import { CatalogProduct, CartItem } from "../types";
 import { formatCurrency } from "../utils/formatters";
 import { useAuth } from "@/contexts/AuthContext";
+import { getProxyImageUrl } from "@/utils/image";
 
 interface SearchProductModalProps {
     isOpen: boolean;
@@ -374,7 +375,7 @@ export function SearchProductModal({ isOpen, onClose, onSelect, onConfirm, multi
                                         <div className="w-11 h-11 rounded-lg overflow-hidden border border-gray-100 flex-shrink-0 bg-gray-100 flex items-center justify-center">
                                             {product.imageurl ? (
                                                 <Image
-                                                    src={product.imageurl}
+                                                    src={getProxyImageUrl(product.imageurl) || "/placeholder.webp"}
                                                     alt={product.description}
                                                     width={44}
                                                     height={44}
@@ -480,7 +481,7 @@ export function SearchProductModal({ isOpen, onClose, onSelect, onConfirm, multi
                                             <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-100 bg-white flex-shrink-0">
                                                 {product.imageurl ? (
                                                     <Image
-                                                        src={product.imageurl}
+                                                        src={getProxyImageUrl(product.imageurl) || "/placeholder.webp"}
                                                         alt={product.description}
                                                         width={48}
                                                         height={48}

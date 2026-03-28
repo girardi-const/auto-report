@@ -5,6 +5,7 @@ import { rateLimit } from "express-rate-limit"
 import cors from 'cors';
 import compression from 'compression';
 import helmet from 'helmet';
+import path from 'path';
 import config from './config';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
@@ -109,6 +110,9 @@ app.use(`${apiBase}/reports`, reportRoutes);
 app.use(`${apiBase}/brands`, brandRoutes);
 app.use(`${apiBase}/users`, userRoutes);
 app.use(`${apiBase}/admin/imports`, importRoutes);
+
+// Static images route
+app.use(`${apiBase}/static-images`, express.static(path.join(__dirname, '../../images')));
 
 app.get(apiBase, (_req: Request, res: Response) => {
     res.json(

@@ -167,64 +167,41 @@ const TotalBlock: React.FC<{
     subtotalBeforeCash: number;
     cashDiscount: number;
     deliveryFee: number;
-    totalProductDiscountAmount: number;
-}> = ({ totalValue, subtotalBeforeCash, cashDiscount, deliveryFee, totalProductDiscountAmount }) => (
+    grossProductsTotal: number;
+    allDiscountsAmount: number;
+}> = ({ totalValue, subtotalBeforeCash, cashDiscount, deliveryFee, grossProductsTotal, allDiscountsAmount }) => (
     <View style={styles.totalRow}>
-        {cashDiscount > 0 ? (
+        <View style={styles.totalItem}>
+            <Text style={styles.totalLabel}>V. Produtos :</Text>
+            <Text style={styles.totalValue}>{fmt(grossProductsTotal)}</Text>
+        </View>
+
+        <View style={styles.totalItem}>
+            <Text style={styles.totalLabel}>Taxa de Entrega :</Text>
+            <Text style={styles.totalValue}>{fmt(deliveryFee)}</Text>
+        </View>
+
+        <View style={styles.totalItem}>
+            <Text style={styles.totalLabel}>V. Descontos :</Text>
+            <Text style={styles.totalValue}>{fmt(allDiscountsAmount)}</Text>
+        </View>
+
+        <View style={styles.totalItem}>
+            <Text style={styles.totalLabel}>V. Total :</Text>
+            <Text style={styles.totalValue}>{fmt(subtotalBeforeCash + deliveryFee)}</Text>
+        </View>
+
+        {cashDiscount > 0 && (
             <>
-
                 <View style={styles.totalItem}>
-                    <Text style={styles.totalLabel}>Total a Prazo :</Text>
-                    <Text style={styles.totalValue}>{fmt(subtotalBeforeCash + deliveryFee)}</Text>
-                </View>
-
-                {totalProductDiscountAmount > 0 && (
-                    <View style={styles.totalItem}>
-                        <Text style={styles.totalLabel}>Descontos dos Produtos :</Text>
-                        <Text style={styles.totalValue}>{fmt(totalProductDiscountAmount)}</Text>
-                    </View>
-                )}
-
-                {deliveryFee > 0 && (
-                    <View style={styles.totalItem}>
-                        <Text style={styles.totalLabel}>Taxa de Entrega :</Text>
-                        <Text style={styles.totalValue}>{fmt(deliveryFee)}</Text>
-                    </View>
-                )}
-
-                <View style={styles.totalItem}>
-                    <Text style={styles.totalLabel}>
-                        Desconto à Vista({cashDiscount}%) :
-                    </Text>
-                    <Text style={styles.totalValue}>
-                        {fmt(subtotalBeforeCash * (cashDiscount / 100))}
-                    </Text>
+                    <Text style={styles.totalLabel}>Desconto à Vista ({cashDiscount}%) :</Text>
+                    <Text style={styles.totalValue}>{fmt(subtotalBeforeCash * (cashDiscount / 100))}</Text>
                 </View>
 
                 <View style={styles.totalItem}>
                     <Text style={styles.totalLabel}>Total à Vista :</Text>
                     <Text style={styles.totalValue}>{fmt(totalValue)}</Text>
                 </View>
-            </>
-        ) : (
-            <>
-                {deliveryFee > 0 && (
-                    <View style={styles.totalItem}>
-                        <Text style={styles.totalLabel}>Taxa de Entrega :</Text>
-                        <Text style={styles.totalValue}>{fmt(deliveryFee)}</Text>
-                    </View>
-                )}
-                <View style={styles.totalItem}>
-                    <Text style={styles.totalLabel}>Total :</Text>
-                    <Text style={styles.totalValue}>{fmt(totalValue)}</Text>
-                </View>
-
-                {totalProductDiscountAmount > 0 && (
-                    <View style={styles.totalItem}>
-                        <Text style={styles.totalLabel}>Descontos dos Produtos :</Text>
-                        <Text style={styles.totalValue}>{fmt(totalProductDiscountAmount)}</Text>
-                    </View>
-                )}
             </>
         )}
     </View>
@@ -255,13 +232,13 @@ export const ReportPDFDocument: React.FC<PDFDocumentProps> = ({
     subtitleSrc = '/extracted/text.png',
     date = new Date().toLocaleDateString('pt-BR'),
 }) => {
-    const totalProductDiscountAmount = sections.reduce((acc, section) => {
+    const grossProductsTotal = sections.reduce((acc, section) => {
         return acc + section.products.reduce((prodAcc, p) => {
             const priceWithMargin = p.priceBase * (1 + (p.margin || 0) / 100);
-            const discountAmount = priceWithMargin * ((p.discount || 0) / 100);
-            return prodAcc + (discountAmount * p.units);
+            return prodAcc + (priceWithMargin * p.units);
         }, 0);
     }, 0);
+    const allDiscountsAmount = grossProductsTotal - subtotalBeforeCash;
 
     return (
         <Document>
@@ -352,7 +329,8 @@ export const ReportPDFDocument: React.FC<PDFDocumentProps> = ({
                     subtotalBeforeCash={subtotalBeforeCash}
                     cashDiscount={cashDiscount}
                     deliveryFee={deliveryFee}
-                    totalProductDiscountAmount={totalProductDiscountAmount}
+                    grossProductsTotal={grossProductsTotal}
+                    allDiscountsAmount={allDiscountsAmount}
                 />
 
                 {/* Payment note */}

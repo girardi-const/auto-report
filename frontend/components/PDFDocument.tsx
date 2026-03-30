@@ -305,21 +305,38 @@ export const ReportPDFDocument: React.FC<PDFDocumentProps> = ({
                             <ProductRow key={product.id} product={product} />
                         ))}
 
-                        {section.discount > 0 && (
-                            <View style={{
-                                flexDirection: 'row',
-                                justifyContent: 'flex-end',
-                                backgroundColor: '#d4d4d4',
-                                paddingVertical: 4,
-                                paddingRight: 8,
-                                borderTopWidth: 0.5,
-                                borderTopColor: '#999999',
-                            }}>
-                                <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold' }}>
-                                    Desconto da Seção ({section.name}): {section.discount}%
-                                </Text>
-                            </View>
-                        )}
+                        {(() => {
+                            const sectionSubtotal = section.products.reduce((acc, p) => {
+                                const withMargin = p.priceBase * (1 + (p.margin || 0) / 100);
+                                const price = withMargin * (1 - (p.discount || 0) / 100);
+                                return acc + (price * p.units);
+                            }, 0);
+                            
+                            const sectionDiscountAmt = sectionSubtotal * ((section.discount || 0) / 100);
+                            const sectionTotal = sectionSubtotal - sectionDiscountAmt;
+
+                            return (
+                                <View style={{
+                                    flexDirection: 'row',
+                                    justifyContent: 'flex-end',
+                                    backgroundColor: '#d4d4d4',
+                                    paddingVertical: 4,
+                                    paddingRight: 8,
+                                    borderTopWidth: 0.5,
+                                    borderTopColor: '#999999',
+                                    gap: 16,
+                                }}>
+                                    {section.discount > 0 && (
+                                        <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold' }}>
+                                            Desconto ({section.discount}%): {fmt(sectionDiscountAmt)}
+                                        </Text>
+                                    )}
+                                    <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold' }}>
+                                        Total da Seção: {fmt(sectionTotal)}
+                                    </Text>
+                                </View>
+                            );
+                        })()}
                     </View>
                 ))}
 

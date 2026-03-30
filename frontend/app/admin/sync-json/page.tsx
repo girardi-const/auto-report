@@ -32,7 +32,7 @@ export default function SyncDecaPage() {
     const [running, setRunning] = useState(false);
     const [progress, setProgress] = useState(0);
     const [stats, setStats] = useState({ created: 0, updated: 0, failed: 0 });
-    const [isWolffSync, setIsWolffSync] = useState(false);
+    const [isLyorSync, setIsLyorSync] = useState(false);
     const [isGabrielaSync, setIsGabrielaSync] = useState(false);
     const cancelRef = useRef(false);
 
@@ -60,40 +60,40 @@ export default function SyncDecaPage() {
         };
         reader.readAsText(file);
         setFileOptions(file);
-        setIsWolffSync(false);
+        setIsLyorSync(false);
         setIsGabrielaSync(false);
     };
 
-    const loadWolffProducts = async () => {
+    const loadLyorProducts = async () => {
         try {
             const res = await fetch(`${API}/static-images/products.json`);
             if (!res.ok) throw new Error('Não foi possível carregar o arquivo products.json');
             const json = await res.json();
-            
-            // Filter products with Brand being WOLFF
-            const wolffOnly = json.filter((p: any) => 
-                (p.name && p.name.toUpperCase().includes('WOLFF'))
+
+            // Filter products with Brand being LYOR
+            const lyorOnly = json.filter((p: any) =>
+                (p.name && p.name.toUpperCase().includes('LYOR'))
             ).map((p: any) => ({
                 code: p.code,
                 name: p.name,
                 price: p.price,
-                brand: 'WOLFF',
+                brand: 'LYOR',
                 image_file: p.image_file
             }));
 
-            if (wolffOnly.length === 0) {
-                toast.error('Nenhum produto Wolff encontrado no JSON.');
+            if (lyorOnly.length === 0) {
+                toast.error('Nenhum produto Lyor encontrado no JSON.');
                 return;
             }
 
-            setProducts(wolffOnly);
-            setIsWolffSync(true);
+            setProducts(lyorOnly);
+            setIsLyorSync(true);
             setIsGabrielaSync(false);
             setFileOptions(null);
-            toast.success(`${wolffOnly.length} produtos Wolff carregados.`);
+            toast.success(`${lyorOnly.length} produtos Lyor carregados.`);
         } catch (err) {
             console.error(err);
-            toast.error('Erro ao carregar produtos Wolff da pasta local.');
+            toast.error('Erro ao carregar produtos Lyor da pasta local.');
         }
     };
 
@@ -101,7 +101,7 @@ export default function SyncDecaPage() {
         try {
             const token = await getIdToken();
             const headers = { Authorization: `Bearer ${token}` };
-            
+
             let allGabriela: any[] = [];
             let page = 1;
             let totalPages = 1;
@@ -111,14 +111,14 @@ export default function SyncDecaPage() {
                 const res = await fetch(`${API}/products?brand=GABRIELA&limit=100&page=${page}`, { headers });
                 if (!res.ok) throw new Error('Falha ao buscar produtos Gabriela');
                 const response = await res.json();
-                
+
                 const productsPage = response.data.data || [];
                 totalPages = response.data.totalPages || 1;
-                
-                const needSync = productsPage.filter((p: any) => 
+
+                const needSync = productsPage.filter((p: any) =>
                     p.imageurl && !p.imageurl.includes('res.cloudinary.com')
                 );
-                
+
                 allGabriela = [...allGabriela, ...needSync];
                 page++;
             } while (page <= totalPages);
@@ -139,7 +139,7 @@ export default function SyncDecaPage() {
 
             setProducts(formatted);
             setIsGabrielaSync(true);
-            setIsWolffSync(false);
+            setIsLyorSync(false);
             setFileOptions(null);
             toast.success(`${formatted.length} produtos Gabriela carregados para sync.`);
         } catch (err) {
@@ -200,11 +200,11 @@ export default function SyncDecaPage() {
                     try {
                         const imgRes = await fetch(`/api/proxy-image?url=${encodeURIComponent(item.imageurl)}`);
                         if (!imgRes.ok) throw new Error(`Proxy error: ${imgRes.status}`);
-                        
+
                         const blob = await imgRes.blob();
                         const formData = new FormData();
                         formData.append('image', blob, `${item.code}.png`);
-                        
+
                         const patchRes = await fetch(`${API}/products/${item._id}/image`, {
                             method: 'PATCH',
                             headers: { Authorization: `Bearer ${token}` },
@@ -228,8 +228,8 @@ export default function SyncDecaPage() {
                     return;
                 }
 
-                // If Wolff Sync, attempt to upload image from local static folder
-                if (isWolffSync && item.image_file) {
+                // If Lyor Sync, attempt to upload image from local static folder
+                if (isLyorSync && item.image_file) {
                     try {
                         const imgRes = await fetch(`${API}/static-images/${item.image_file}`);
                         if (imgRes.ok) {
@@ -288,20 +288,28 @@ export default function SyncDecaPage() {
                     }
                 }
 
-                // Normal JSON Sync logic (fallback or non-Wolff)
+                // Normal JSON Sync logic (fallback or non-Lyor)
                 const getRes = await fetch(`${API}/products/${encodeURIComponent(item.code)}`, { headers });
+                
+                const imgUrl = (item.image ?? item.imageurl ?? '').trim();
+                const isValidUrl = imgUrl.length > 0;
 
                 if (getRes.ok) {
                     const data = await getRes.json();
                     const existingProduct = data.data;
+                    
+                    const updateBody: any = {
+                        description: item.name.toUpperCase(),
+                        brand_name: bName
+                    };
+                    if (isValidUrl) {
+                        updateBody.imageurl = imgUrl;
+                    }
 
                     const putRes = await fetch(`${API}/products/${existingProduct._id}`, {
                         method: 'PUT',
                         headers,
-                        body: JSON.stringify({
-                            description: item.name.toUpperCase(),
-                            brand_name: bName
-                        })
+                        body: JSON.stringify(updateBody)
                     });
 
                     if (putRes.ok) {
@@ -310,8 +318,6 @@ export default function SyncDecaPage() {
                         f++;
                     }
                 } else if (getRes.status === 404) {
-                    const imgUrl = (item.image ?? item.imageurl ?? '').trim();
-                    const isValidUrl = imgUrl.length > 0;
                     const requestBody: any = {
                         product_code: item.code.toString(),
                         description: item.name.toUpperCase(),
@@ -427,12 +433,12 @@ export default function SyncDecaPage() {
 
             <div className="flex gap-4">
                 <button
-                    onClick={loadWolffProducts}
+                    onClick={loadLyorProducts}
                     disabled={running}
                     className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg"
                 >
                     <UploadCloud size={20} />
-                    Carregar Wolff (Local JSON)
+                    Carregar Lyor (Local JSON)
                 </button>
                 <button
                     onClick={loadGabrielaProducts}

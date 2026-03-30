@@ -167,7 +167,8 @@ const TotalBlock: React.FC<{
     subtotalBeforeCash: number;
     cashDiscount: number;
     deliveryFee: number;
-}> = ({ totalValue, subtotalBeforeCash, cashDiscount, deliveryFee }) => (
+    totalProductDiscountAmount: number;
+}> = ({ totalValue, subtotalBeforeCash, cashDiscount, deliveryFee, totalProductDiscountAmount }) => (
     <View style={styles.totalRow}>
         {cashDiscount > 0 ? (
             <>
@@ -176,6 +177,13 @@ const TotalBlock: React.FC<{
                     <Text style={styles.totalLabel}>Total a Prazo :</Text>
                     <Text style={styles.totalValue}>{fmt(subtotalBeforeCash + deliveryFee)}</Text>
                 </View>
+
+                {totalProductDiscountAmount > 0 && (
+                    <View style={styles.totalItem}>
+                        <Text style={styles.totalLabel}>Descontos dos Produtos :</Text>
+                        <Text style={styles.totalValue}>{fmt(totalProductDiscountAmount)}</Text>
+                    </View>
+                )}
 
                 {deliveryFee > 0 && (
                     <View style={styles.totalItem}>
@@ -186,7 +194,7 @@ const TotalBlock: React.FC<{
 
                 <View style={styles.totalItem}>
                     <Text style={styles.totalLabel}>
-                        Desconto a Vista({cashDiscount}%) :
+                        Desconto à Vista({cashDiscount}%) :
                     </Text>
                     <Text style={styles.totalValue}>
                         {fmt(subtotalBeforeCash * (cashDiscount / 100))}
@@ -210,6 +218,13 @@ const TotalBlock: React.FC<{
                     <Text style={styles.totalLabel}>Total :</Text>
                     <Text style={styles.totalValue}>{fmt(totalValue)}</Text>
                 </View>
+
+                {totalProductDiscountAmount > 0 && (
+                    <View style={styles.totalItem}>
+                        <Text style={styles.totalLabel}>Descontos dos Produtos :</Text>
+                        <Text style={styles.totalValue}>{fmt(totalProductDiscountAmount)}</Text>
+                    </View>
+                )}
             </>
         )}
     </View>
@@ -239,182 +254,193 @@ export const ReportPDFDocument: React.FC<PDFDocumentProps> = ({
     logoSrc = '/logo.png',
     subtitleSrc = '/extracted/text.png',
     date = new Date().toLocaleDateString('pt-BR'),
-}) => (
-    <Document>
+}) => {
+    const totalProductDiscountAmount = sections.reduce((acc, section) => {
+        return acc + section.products.reduce((prodAcc, p) => {
+            const priceWithMargin = p.priceBase * (1 + (p.margin || 0) / 100);
+            const discountAmount = priceWithMargin * ((p.discount || 0) / 100);
+            return prodAcc + (discountAmount * p.units);
+        }, 0);
+    }, 0);
 
-        {/* ── PRODUCT PAGES ─────────────────────────────────────────── */}
-        <Page size="A4" style={styles.page}>
+    return (
+        <Document>
 
-            {/* Header */}
-            <View style={styles.header}>
-                <View style={styles.headerTop}>
-                    <Image src={logoSrc} style={styles.logo} />
-                    <CompanyInfo />
-                </View>
+            {/* ── PRODUCT PAGES ─────────────────────────────────────────── */}
+            <Page size="A4" style={styles.page}>
 
-                {/* "UM NOVO CONCEITO / o mesmo propósito" */}
-                <View style={styles.titleBlock}>
-                    {subtitleSrc && (
-                        <Image src={subtitleSrc} style={styles.titleSubtitleImage} />
-                    )}
-                </View>
+                {/* Header */}
+                <View style={styles.header}>
+                    <View style={styles.headerTop}>
+                        <Image src={logoSrc} style={styles.logo} />
+                        <CompanyInfo />
+                    </View>
 
-                <View style={styles.hairline} />
+                    {/* "UM NOVO CONCEITO / o mesmo propósito" */}
+                    <View style={styles.titleBlock}>
+                        {subtitleSrc && (
+                            <Image src={subtitleSrc} style={styles.titleSubtitleImage} />
+                        )}
+                    </View>
 
-                {/* Orçamento de Venda bar */}
-                <View style={styles.orcamentoBar}>
-                    <Text style={styles.orcamentoBarText}>Orçamento de Venda</Text>
-                </View>
+                    <View style={styles.hairline} />
 
-                {/* Client info */}
-                <View style={styles.clientBlock}>
-                    {/* Row 1: Cliente (left) + Celular (right) */}
-                    <View style={styles.clientRowDual}>
-                        <View style={styles.clientLeft}>
-                            <Text style={styles.clientLabel}>Cliente:</Text>
-                            <Text style={styles.clientValue}>{clientInfo.name}</Text>
+                    {/* Orçamento de Venda bar */}
+                    <View style={styles.orcamentoBar}>
+                        <Text style={styles.orcamentoBarText}>Orçamento de Venda</Text>
+                    </View>
+
+                    {/* Client info */}
+                    <View style={styles.clientBlock}>
+                        {/* Row 1: Cliente (left) + Celular (right) */}
+                        <View style={styles.clientRowDual}>
+                            <View style={styles.clientLeft}>
+                                <Text style={styles.clientLabel}>Cliente:</Text>
+                                <Text style={styles.clientValue}>{clientInfo.name}</Text>
+                            </View>
+                            <View style={styles.clientRight}>
+                                <Text style={styles.clientLabel}>Celular:</Text>
+                                <Text style={styles.clientValue}>{clientInfo.telefone}</Text>
+                            </View>
                         </View>
-                        <View style={styles.clientRight}>
-                            <Text style={styles.clientLabel}>Celular:</Text>
-                            <Text style={styles.clientValue}>{clientInfo.telefone}</Text>
+                        {/* Row 2: Especificador */}
+                        <View style={styles.clientRow}>
+                            <Text style={styles.clientLabel}>Especificador:</Text>
+                            <Text style={styles.clientValue}>{especificador.toUpperCase()}</Text>
+                        </View>
+                        {/* Row 3: Consultor */}
+                        <View style={styles.clientRow}>
+                            <Text style={styles.clientLabel}>Consultor:</Text>
+                            <Text style={styles.clientValue}>{consultor.toUpperCase()}{consultorPhone ? ` - ${consultorPhone}` : ''}</Text>
                         </View>
                     </View>
-                    {/* Row 2: Especificador */}
-                    <View style={styles.clientRow}>
-                        <Text style={styles.clientLabel}>Especificador:</Text>
-                        <Text style={styles.clientValue}>{especificador.toUpperCase()}</Text>
-                    </View>
-                    {/* Row 3: Consultor */}
-                    <View style={styles.clientRow}>
-                        <Text style={styles.clientLabel}>Consultor:</Text>
-                        <Text style={styles.clientValue}>{consultor.toUpperCase()}{consultorPhone ? ` - ${consultorPhone}` : ''}</Text>
-                    </View>
                 </View>
-            </View>
 
-            {/* Column headers — repeated on each new page via `fixed` */}
-            <TableColumnHeaders />
+                {/* Column headers — repeated on each new page via `fixed` */}
+                <TableColumnHeaders />
 
-            {/* Sections */}
-            {sections.map((section) => (
-                <View key={section.id}>
-                    <SectionHeader name={section.name} />
+                {/* Sections */}
+                {sections.map((section) => (
+                    <View key={section.id}>
+                        <SectionHeader name={section.name} />
 
-                    {section.products.map((product) => (
-                        <ProductRow key={product.id} product={product} />
-                    ))}
+                        {section.products.map((product) => (
+                            <ProductRow key={product.id} product={product} />
+                        ))}
 
-                    {section.discount > 0 && (
-                        <View style={{
-                            flexDirection: 'row',
-                            justifyContent: 'flex-end',
-                            backgroundColor: '#d4d4d4',
-                            paddingVertical: 4,
-                            paddingRight: 8,
-                            borderTopWidth: 0.5,
-                            borderTopColor: '#999999',
-                        }}>
-                            <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold' }}>
-                                Desconto da Seção ({section.name}): {section.discount}%
-                            </Text>
-                        </View>
-                    )}
+                        {section.discount > 0 && (
+                            <View style={{
+                                flexDirection: 'row',
+                                justifyContent: 'flex-end',
+                                backgroundColor: '#d4d4d4',
+                                paddingVertical: 4,
+                                paddingRight: 8,
+                                borderTopWidth: 0.5,
+                                borderTopColor: '#999999',
+                            }}>
+                                <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold' }}>
+                                    Desconto da Seção ({section.name}): {section.discount}%
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                ))}
+
+                {/* Total */}
+                <TotalBlock
+                    totalValue={totalValue}
+                    subtotalBeforeCash={subtotalBeforeCash}
+                    cashDiscount={cashDiscount}
+                    deliveryFee={deliveryFee}
+                    totalProductDiscountAmount={totalProductDiscountAmount}
+                />
+
+                {/* Payment note */}
+                <View style={{
+                    backgroundColor: '#efede7',
+                    paddingVertical: 10,
+                    alignItems: 'center',
+                    marginTop: 0,
+                }}>
+                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#333333', marginBottom: 3 }}>
+                        *condição de pagamento à prazo em até 10x sem juros no cartão
+                    </Text>
+                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#333333' }}>
+                        *Sujeito à alterações de disponibilidade de estoque
+                    </Text>
                 </View>
-            ))}
 
-            {/* Total */}
-            <TotalBlock
-                totalValue={totalValue}
-                subtotalBeforeCash={subtotalBeforeCash}
-                cashDiscount={cashDiscount}
-                deliveryFee={deliveryFee}
-            />
+                <PageFooter date={date} />
+            </Page>
 
-            {/* Payment note */}
-            <View style={{
-                backgroundColor: '#efede7',
-                paddingVertical: 10,
-                alignItems: 'center',
-                marginTop: 0,
-            }}>
-                <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#333333', marginBottom: 3 }}>
-                    *condição de pagamento à prazo em até 10x sem juros no cartão
+            {/* ── TERMS PAGE ────────────────────────────────────────────── */}
+            <Page size="A4" style={styles.termsPage}>
+
+                <Image src={logoSrc} style={styles.termsLogo} />
+
+                <Text style={styles.termsTitle}>TROCAS E DEVOLUÇÕES</Text>
+
+                <Text style={styles.termsGreeting}>Prezados clientes,</Text>
+
+                <Text style={styles.termsPara}>
+                    Nosso compromisso é garantir sua satisfação e cumprir as normas do{' '}
+                    <Text style={{ fontFamily: 'Helvetica-Bold' }}>
+                        Código de Defesa do Consumidor (Lei n° 8.078/90)
+                    </Text>
+                    .
                 </Text>
-                <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#333333' }}>
-                    *Sujeito à alterações de disponibilidade de estoque
+
+                <Text style={styles.termsPara}>
+                    Para isso, estabelecemos as seguintes condições para trocas e devoluções:
                 </Text>
-            </View>
 
-            <PageFooter date={date} />
-        </Page>
+                <TermItem
+                    bold="* Troca por defeito de fabricação: "
+                    rest="Aceitamos trocas de produtos com defeito dentro do prazo de 90 dias para bens duráveis e 30 dias para bens não duráveis, conforme o artigo 26 do CDC."
+                />
 
-        {/* ── TERMS PAGE ────────────────────────────────────────────── */}
-        <Page size="A4" style={styles.termsPage}>
+                <TermItem
+                    bold="* Bens duráveis (90 dias de garantia legal): "
+                    rest="eletrodomésticos, ferramentas elétricas, furadeiras, chuveiros, torneiras elétricas, luminárias, móveis, porcelanatos, revestimentos, cerâmicas, louças sanitárias, fechaduras, disjuntores, ventiladores, aquecedores, escadas e itens de iluminação."
+                />
 
-            <Image src={logoSrc} style={styles.termsLogo} />
+                <TermItem
+                    bold="* Bens não duráveis (30 dias de garantia legal): "
+                    rest="tintas, colas, adesivos, argamassas, rejuntes, lâmpadas, pilhas, baterias, produtos de vedação, materiais de limpeza, massas de acabamento, silicones e outros produtos de consumo imediato ou de curta duração. O produto será analisado e, caso seja constatado defeito, poderá ser consertado, trocado ou reembolsado."
+                />
 
-            <Text style={styles.termsTitle}>TROCAS E DEVOLUÇÕES</Text>
+                <TermItem
+                    bold="* Desistência da compra (compras online): "
+                    rest="Conforme o artigo 49 do CDC, o cliente tem 7 dias corridos após o recebimento para desistir da compra e solicitar a devolução do produto sem custo adicional."
+                />
 
-            <Text style={styles.termsGreeting}>Prezados clientes,</Text>
+                <TermItem
+                    bold="* Produtos sem defeito: "
+                    rest="A troca de produtos por motivo de arrependimento em compras presenciais não é obrigatória por lei, mas poderá ser realizada por cortesia da empresa no período de 15 (quinze) dias, desde que o produto esteja sem uso, na embalagem original e com a nota fiscal. Consulte nossas condições específicas."
+                />
 
-            <Text style={styles.termsPara}>
-                Nosso compromisso é garantir sua satisfação e cumprir as normas do{' '}
-                <Text style={{ fontFamily: 'Helvetica-Bold' }}>
-                    Código de Defesa do Consumidor (Lei n° 8.078/90)
+                <Text style={styles.termsSectionTitle}>Não realizamos trocas de:</Text>
+
+                {[
+                    '* Produtos sem nota fiscal ou fora do prazo estabelecido;',
+                    '* Produtos danificados por mau uso;',
+                    '* Itens personalizados ou sob encomenda.',
+                    '* Para solicitar trocas ou devoluções, entre em contato conosco através do nosso atendimento.',
+                ].map((line) => (
+                    <Text key={line} style={styles.termsBullet}>{line}</Text>
+                ))}
+
+                <Text style={styles.termsValidity}>
+                    Orçamentos possuem validade de 07 dias, a partir da data de envio ou enquanto durar o estoque.
                 </Text>
-                .
-            </Text>
 
-            <Text style={styles.termsPara}>
-                Para isso, estabelecemos as seguintes condições para trocas e devoluções:
-            </Text>
+                <Text style={styles.termsClosing}>
+                    Agradecemos sua compreensão e estamos à disposição para melhor atendê-lo!
+                </Text>
 
-            <TermItem
-                bold="* Troca por defeito de fabricação: "
-                rest="Aceitamos trocas de produtos com defeito dentro do prazo de 90 dias para bens duráveis e 30 dias para bens não duráveis, conforme o artigo 26 do CDC."
-            />
+                <PageFooter date={date} />
+            </Page>
 
-            <TermItem
-                bold="* Bens duráveis (90 dias de garantia legal): "
-                rest="eletrodomésticos, ferramentas elétricas, furadeiras, chuveiros, torneiras elétricas, luminárias, móveis, porcelanatos, revestimentos, cerâmicas, louças sanitárias, fechaduras, disjuntores, ventiladores, aquecedores, escadas e itens de iluminação."
-            />
-
-            <TermItem
-                bold="* Bens não duráveis (30 dias de garantia legal): "
-                rest="tintas, colas, adesivos, argamassas, rejuntes, lâmpadas, pilhas, baterias, produtos de vedação, materiais de limpeza, massas de acabamento, silicones e outros produtos de consumo imediato ou de curta duração. O produto será analisado e, caso seja constatado defeito, poderá ser consertado, trocado ou reembolsado."
-            />
-
-            <TermItem
-                bold="* Desistência da compra (compras online): "
-                rest="Conforme o artigo 49 do CDC, o cliente tem 7 dias corridos após o recebimento para desistir da compra e solicitar a devolução do produto sem custo adicional."
-            />
-
-            <TermItem
-                bold="* Produtos sem defeito: "
-                rest="A troca de produtos por motivo de arrependimento em compras presenciais não é obrigatória por lei, mas poderá ser realizada por cortesia da empresa no período de 15 (quinze) dias, desde que o produto esteja sem uso, na embalagem original e com a nota fiscal. Consulte nossas condições específicas."
-            />
-
-            <Text style={styles.termsSectionTitle}>Não realizamos trocas de:</Text>
-
-            {[
-                '* Produtos sem nota fiscal ou fora do prazo estabelecido;',
-                '* Produtos danificados por mau uso;',
-                '* Itens personalizados ou sob encomenda.',
-                '* Para solicitar trocas ou devoluções, entre em contato conosco através do nosso atendimento.',
-            ].map((line) => (
-                <Text key={line} style={styles.termsBullet}>{line}</Text>
-            ))}
-
-            <Text style={styles.termsValidity}>
-                Orçamentos possuem validade de 07 dias, a partir da data de envio ou enquanto durar o estoque.
-            </Text>
-
-            <Text style={styles.termsClosing}>
-                Agradecemos sua compreensão e estamos à disposição para melhor atendê-lo!
-            </Text>
-
-            <PageFooter date={date} />
-        </Page>
-
-    </Document>
-);
+        </Document>
+    );
+};

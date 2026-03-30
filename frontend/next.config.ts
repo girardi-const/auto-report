@@ -20,12 +20,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "deca.com.br",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "produtos.deca.com.br",
+        hostname: "**.deca.com.br",
         pathname: "/**",
       },
       {
@@ -50,7 +45,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "www.rinnai.com.br",
+        hostname: "**.rinnai.com.br",
         pathname: "/**",
       },
       {
@@ -60,57 +55,27 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "www.komeco.com.br",
+        hostname: "**.komeco.com.br",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "siermoveis.com.br",
-        pathname: "/**",
-      },
-      {
-        protocol: "http",
-        hostname: "siermoveis.com.br",
+        hostname: "**.siermoveis.com.br",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "www.lorenzetti.com.br",
-        pathname: "/**",
-      },
-      {
-        protocol: "http",
-        hostname: "www.lorenzetti.com.br",
+        hostname: "**.lorenzetti.com.br",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "lorenzetti.com.br",
-        pathname: "/**",
-      },
-      {
-        protocol: "http",
-        hostname: "lorenzetti.com.br",
+        hostname: "**.balcony.com.br",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "www.balcony.com.br",
-        pathname: "/**",
-      },
-      {
-        protocol: "http",
-        hostname: "www.balcony.com.br",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "www.incepa.com.br",
-        pathname: "/**",
-      },
-      {
-        protocol: "http",
-        hostname: "www.incepa.com.br",
+        hostname: "**.incepa.com.br",
         pathname: "/**",
       },
       {
@@ -130,72 +95,102 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "stella.com.br",
+        hostname: "**.stella.com.br",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "nordecor.com.br",
+        hostname: "**.nordecor.com.br",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "www.senseceramica.com.br",
-        pathname: "/**",
-      },
-      {
-        protocol: "http",
-        hostname: "www.senseceramica.com.br",
+        hostname: "**.senseceramica.com.br",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "senseceramica.com.br",
-        pathname: "/**",
-      },
-      {
-        protocol: "http",
-        hostname: "senseceramica.com.br",
+        hostname: "**.gabcer.com.br",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "gabcer.com.br",
-        pathname: "/**",
-      },
-      {
-        protocol: "http",
-        hostname: "gabcer.com.br",
+        hostname: "**.avantlux.com.br",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "www.gabcer.com.br",
-        pathname: "/**",
-      },
-      {
-        protocol: "http",
-        hostname: "www.gabcer.com.br",
+        hostname: "**.rocaceramica.com.br",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "avantlux.com.br",
-        pathname: "/**",
-      },
-      {
-        protocol: "http",
-        hostname: "avantlux.com.br",
+        hostname: "**.eliane.com",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "www.avantlux.com.br",
+        hostname: "meucentury.com",
         pathname: "/**",
       },
       {
-        protocol: "http",
-        hostname: "www.avantlux.com.br",
+        protocol: "https",
+        hostname: "pixiluminacao.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "skylightiluminacao.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "madelustre.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "jlriluminacao.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.grupoembramaco.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "assets-us-01.kc-usercontent.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.blob.core.windows.net",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "lojabella.vtexassets.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "i0.wp.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "tinsultintas.com.br",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "s3-sa-east-1.amazonaws.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "download-warehouse.sketchup.com",
         pathname: "/**",
       },
     ],

@@ -14,6 +14,7 @@ plans/
 # Ignore all .md files except README.md
 .xlsx
 .csv
+big-boy.json
 *.md
 !README.md
 **/README.md

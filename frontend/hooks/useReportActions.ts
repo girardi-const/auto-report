@@ -11,6 +11,7 @@ interface ReportPayload {
     consultorPhone?: string;
     cash_discount?: number;
     client_info?: Partial<ClientInfo>;
+    delivery_value?: number;
     sections: {
         section_name: string;
         section_discount: number;

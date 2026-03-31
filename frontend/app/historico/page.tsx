@@ -31,6 +31,7 @@ import {
     ChevronRight,
     Calendar,
     CheckSquare,
+    Copy,
 } from 'lucide-react';
 
 // ─── Helpers & Components Imported ──────────────────────────────────────────
@@ -40,7 +41,7 @@ export default function ReportsPage() {
     const { user, loading: authLoading, isAdmin } = useAuth();
     const router = useRouter();
     const { users, fetchUsers } = useUsers();
-    const { deleteManyReports, deletingMany } = useReportActions();
+    const { deleteManyReports, deletingMany, saveReport } = useReportActions();
 
     // Filters State
     const [rawSearch, setRawSearch] = useState('');
@@ -94,6 +95,7 @@ export default function ReportsPage() {
     // Download states
     const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
     const [downloadingExcel, setDownloadingExcel] = useState<string | null>(null);
+    const [copyingId, setCopyingId] = useState<string | null>(null);
 
     // ── Selection state ────────────────────────────────────────────────────
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -132,6 +134,45 @@ export default function ReportsPage() {
         setSelectedIds(new Set());
         setShowBulkDeleteModal(false);
         refetch();
+    };
+
+    const handleCopyReport = async (originalId: string) => {
+        const report = reports.find(r => r._id === originalId);
+        if (!report) return;
+
+        setCopyingId(originalId);
+        try {
+            await saveReport({
+                title: `Copia_${report.title}`,
+                especificador: report.especificador,
+                consultor: report.consultor,
+                consultorPhone: report.consultorPhone,
+                cash_discount: report.cash_discount,
+                delivery_value: report.delivery_value,
+                client_info: report.client_info,
+                sections: report.sections.map(s => ({
+                    section_name: s.section_name,
+                    section_discount: s.section_discount,
+                    products: s.products.map(p => ({
+                        product_name: p.product_name,
+                        product_id: p.product_id,
+                        image_url: p.image_url,
+                        price: p.price,
+                        margin: p.margin || 0,
+                        discount: p.discount || 0,
+                        quantity: p.quantity,
+                        type: p.type,
+                        total: p.total,
+                    })),
+                })),
+            });
+            refetch();
+        } catch (error) {
+            console.error('Error copying report:', error);
+            alert('Erro ao copiar o relatório.');
+        } finally {
+            setCopyingId(null);
+        }
     };
 
     const totalPages = pagination?.totalPages || 1;
@@ -248,7 +289,7 @@ export default function ReportsPage() {
 
     if (!user) return null;
 
-    const colCount = 6; // always include actions column
+    const colCount = 8;
 
     return (
         <div className="min-h-screen bg-muted">
@@ -405,7 +446,7 @@ export default function ReportsPage() {
                                 {!loading && reports.length === 0 && (
                                     <tr>
                                         <td colSpan={colCount} className="px-6 py-20 text-center">
-                                            <div className="flex flex-col items-center gap-3 text-gray-300">
+                                            <div className="flex flex-col items-center justify-center w-full gap-3 text-gray-300">
                                                 <ClipboardList size={36} />
                                                 <p className="font-black text-sm uppercase tracking-widest">
                                                     Nenhum relatório encontrado
@@ -485,7 +526,7 @@ export default function ReportsPage() {
                                                         onClick={() => handleDownloadExcel(r)}
                                                         disabled={downloadingExcel === r._id}
                                                         title="Baixar Excel"
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-all disabled:opacity-40"
+                                                        className="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-all disabled:opacity-40"
                                                     >
                                                         {downloadingExcel === r._id
                                                             ? <Loader2 size={13} className="animate-spin" />
@@ -496,7 +537,7 @@ export default function ReportsPage() {
                                                         onClick={() => handleDownloadPDF(r)}
                                                         disabled={downloadingPDF === r._id}
                                                         title="Baixar PDF"
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-40"
+                                                        className="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-40"
                                                     >
                                                         {downloadingPDF === r._id
                                                             ? <Loader2 size={13} className="animate-spin" />
@@ -511,19 +552,27 @@ export default function ReportsPage() {
                                                 return (
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center justify-center gap-2">
+                                                            <button
+                                                                onClick={() => handleCopyReport(r._id)}
+                                                                disabled={copyingId === r._id}
+                                                                title='Faça uma copia desse orçamento'
+                                                                className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-200  cursor-pointer transition-all disabled:opacity-40"
+                                                            >
+                                                                {copyingId === r._id ? <Loader2 size={15} className="animate-spin" /> : <Copy size={15} />}
+                                                            </button>
                                                             {canAct && (
                                                                 <>
                                                                     <Link
                                                                         href={`/historico/${r._id}?edit=1`}
                                                                         title="Editar relatório"
-                                                                        className="p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-all"
+                                                                        className="p-2 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-300 transition-all"
                                                                     >
                                                                         <Pencil size={15} />
                                                                     </Link>
                                                                     <button
                                                                         onClick={() => setDeleteTarget(r)}
                                                                         title="Deletar relatório"
-                                                                        className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                                                                        className="p-2 rounded-lg text-gray-400 hover:text-red-500 cursor-pointer hover:bg-red-200 transition-all"
                                                                     >
                                                                         <Trash2 size={15} />
                                                                     </button>

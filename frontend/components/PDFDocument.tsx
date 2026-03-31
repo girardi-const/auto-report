@@ -300,7 +300,6 @@ export const ReportPDFDocument: React.FC<PDFDocumentProps> = ({
                 {sections.map((section) => (
                     <View key={section.id}>
                         <SectionHeader name={section.name} />
-
                         {section.products.map((product) => (
                             <ProductRow key={product.id} product={product} />
                         ))}
@@ -311,7 +310,7 @@ export const ReportPDFDocument: React.FC<PDFDocumentProps> = ({
                                 const price = withMargin * (1 - (p.discount || 0) / 100);
                                 return acc + (price * p.units);
                             }, 0);
-                            
+
                             const sectionDiscountAmt = sectionSubtotal * ((section.discount || 0) / 100);
                             const sectionTotal = sectionSubtotal - sectionDiscountAmt;
 

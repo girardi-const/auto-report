@@ -117,6 +117,11 @@ export default function Header() {
                                 Gerar Relatório
                             </Link>
                         </li>
+                        <li>
+                            <Link href="/editor" className="hover:text-primary transition-colors">
+                                Editor Livre
+                            </Link>
+                        </li>
                         {isAdmin && (
                             <>
                                 <li>

@@ -5,7 +5,7 @@ import { useMongoUser } from "@/hooks/useMongoUser";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
-import { FileText, Database, History, UserPlus, PackagePlus, UploadCloud, Tag } from "lucide-react";
+import { FileText, Database, History, UserPlus, PackagePlus, UploadCloud, Tag, Edit3 } from "lucide-react";
 import NameModal from "@/components/NameModal";
 
 export default function Home() {
@@ -39,6 +39,14 @@ export default function Home() {
       icon: FileText,
       glowColor: "var(--color-primary)",
       delay: "0s"
+    },
+    {
+      href: "/editor",
+      title: "Editor Livre",
+      description: "Crie relatórios com layout de texto totalmente customizado e importação.",
+      icon: Edit3,
+      glowColor: "#0ea5e9", // sky-500 (light blue)
+      delay: "-5s"
     },
     {
       href: "/catalogo",
@@ -89,7 +97,7 @@ export default function Home() {
       description: "Faça upload de planilhas para cadastrar múltiplos produtos de uma vez.",
       icon: UploadCloud,
       glowColor: "#ef4444", // red-500
-      delay: "-6s"
+      delay: "-8s"
     });
   }
 

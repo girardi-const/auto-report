@@ -71,7 +71,7 @@ export default function CreateProductPage() {
             <div className="px-6 py-6">
                 <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-gray-800 font-black text-2xl tracking-tight uppercase italic">
+                        <h1 className="text-gray-800 font-black text-2xl tracking-tight uppercase ">
                             Cadastrar <span className="text-primary">Novo</span> Produto
                         </h1>
                         <p className="text-gray-800/40 text-xs font-medium mt-0.5">

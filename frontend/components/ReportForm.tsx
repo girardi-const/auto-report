@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus as PlusIcon } from "lucide-react";
+import { Plus as PlusIcon, Download as DownloadIcon, X as XIcon } from "lucide-react";
 import { generateExcel } from '../utils/excelExporter';
 import { pdf as generatePdf } from '@react-pdf/renderer';
 import { ReportPDFDocument } from './PDFDocument';
@@ -71,6 +71,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
     const [reportTitle, setReportTitle] = useState(initialTitle || "");
     const [savedReportId, setSavedReportId] = useState<string | null>(initialReportId || null);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
+    const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
     const saveStatusTimer = useRef<NodeJS.Timeout | null>(null);
 
     const showSaveStatus = (status: 'saved' | 'error') => {
@@ -222,11 +223,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
 
             const blob = await generatePdf(doc).toBlob();
             const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `Orcamento_${clientInfo.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-            link.click();
-            URL.revokeObjectURL(url);
+            setPdfPreviewUrl(url);
         } catch (error) {
             console.error('Error generating PDF:', error);
             alert('Erro ao gerar PDF. Por favor, tente novamente.');
@@ -335,6 +332,47 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
                 onGeneratePDF={handleGeneratePDF}
                 onSave={handleSave}
             />
+
+            {pdfPreviewUrl && (
+                <div className="fixed inset-0 z-50 bg-black/90 flex flex-col animate-in fade-in duration-300">
+                    <div className="flex items-center justify-between px-6 py-4 bg-gray-900 text-white border-b border-gray-800">
+                        <div className="flex items-center gap-4">
+                            <h2 className="text-lg font-bold">Visualização do Relatório</h2>
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+                            <button 
+                                onClick={() => {
+                                    const link = document.createElement('a');
+                                    link.href = pdfPreviewUrl;
+                                    link.download = `Orcamento_${clientInfo.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+                                    link.click();
+                                }}
+                                className="px-4 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2 text-sm sm:text-base"
+                            >
+                                <DownloadIcon size={20} />
+                                Salvar PDF
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    URL.revokeObjectURL(pdfPreviewUrl);
+                                    setPdfPreviewUrl(null);
+                                }}
+                                className="px-4 py-2 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-600 transition-colors flex items-center gap-2 text-sm sm:text-base"
+                            >
+                                <XIcon size={20} />
+                                Voltar para Edição
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex-1 w-full p-2 md:p-8 overflow-hidden flex justify-center items-center">
+                        <iframe 
+                            src={pdfPreviewUrl} 
+                            className="w-full h-full max-w-5xl rounded-xl bg-white shadow-2xl"
+                            title="PDF Preview"
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -555,7 +555,7 @@ export default function ReportsPage() {
                                                             <button
                                                                 onClick={() => handleCopyReport(r._id)}
                                                                 disabled={copyingId === r._id}
-                                                                title='Faça uma copia desse orçamento'
+                                                                title='Faça uma cópia desse orçamento'
                                                                 className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-200  cursor-pointer transition-all disabled:opacity-40"
                                                             >
                                                                 {copyingId === r._id ? <Loader2 size={15} className="animate-spin" /> : <Copy size={15} />}

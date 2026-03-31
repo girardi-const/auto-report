@@ -143,7 +143,7 @@ export default function ReportsPage() {
         setCopyingId(originalId);
         try {
             await saveReport({
-                title: `Copia_${report.title}`,
+                title: `Cópia_${report.title}`,
                 especificador: report.especificador,
                 consultor: report.consultor,
                 consultorPhone: report.consultorPhone,

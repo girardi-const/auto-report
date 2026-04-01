@@ -82,10 +82,10 @@ export default function EditorPage() {
         } else if (type === 'image') {
             newBlock = { id, type: 'image', src: '', width: 50, align: 'center' } as ImageBlock;
         } else if (type === 'table') {
-            newBlock = { 
-                id, 
-                type: 'table', 
-                headers: ['QTND', 'DESCRIÇÃO', 'IMAGEM', 'VALOR UND', 'SUB TOTAL'], 
+            newBlock = {
+                id,
+                type: 'table',
+                headers: ['QTND', 'DESCRIÇÃO', 'IMAGEM', 'VALOR UND', 'SUB TOTAL'],
                 rows: Array.from({ length: 5 }, () => ['', '', '', '', '']),
                 columnWidths: [6, 44, 18, 16, 16]
             } as TableBlock;
@@ -94,14 +94,14 @@ export default function EditorPage() {
         } else if (type === 'section_total') {
             newBlock = { id, type: 'section_total', label: 'Total da Seção:', value: 'R$ 0,00' } as SectionTotalBlock;
         } else if (type === 'general_total') {
-            newBlock = { 
-                id, type: 'general_total', 
+            newBlock = {
+                id, type: 'general_total',
                 items: [
                     { label: 'V. Produtos :', value: 'R$ 0,00' },
                     { label: 'Taxa de Entrega :', value: 'R$ 0,00' },
                     { label: 'V. Descontos :', value: 'R$ 0,00' },
                     { label: 'V. Total :', value: 'R$ 0,00' }
-                ] 
+                ]
             } as GeneralTotalBlock;
         } else {
             newBlock = { id, type: 'spacer', height: 20 } as SpacerBlock;
@@ -188,12 +188,14 @@ export default function EditorPage() {
     if (authLoading || !user) return <div className="h-screen flex items-center justify-center">Carregando...</div>;
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20 pt-8 px-4 md:px-8 font-sans">
-            <PageHeader
-                onClear={() => setDoc(initialDocument)}
-                title="Editor Livre de Orçamento"
-                subtitle="Crie PDFs com formatação customizada e imagens através de blocos"
-            />
+        <div className="min-h-screen bg-gray-50 pb-20 pt-12 px-1 md:px-8 font-sans">
+            <div className='px-28'>
+                <PageHeader
+                    onClear={() => setDoc(initialDocument)}
+                    title="Editor Livre de Orçamento"
+                    subtitle="Crie PDFs com formatação customizada e imagens através de blocos"
+                />
+            </div>
 
             <div className="flex justify-center mx-auto items-start relative px-4 w-full mt-8">
 

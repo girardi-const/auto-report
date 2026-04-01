@@ -29,7 +29,7 @@ export default function GerarRelatorio() {
     }
 
     return (
-        <div className="min-h-screen bg-muted flex flex-col pt-10 px-4 md:px-0">
+        <div className="min-h-screen bg-muted flex flex-col pt-4 px-4 md:px-0">
             <div className="container mx-auto">
                 <ReportForm
                     onSaveSuccess={() => toast.success("Relatório salvo com sucesso")}

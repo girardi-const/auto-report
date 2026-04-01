@@ -2,7 +2,7 @@ import { RotateCcw } from "lucide-react";
 
 const PageHeader = ({ onClear, title = "Gerar Novo Relatório", subtitle = "Preencha os dados abaixo para gerar o PDF." }: { onClear: () => void, title?: string, subtitle?: string }) => {
     return (
-        <div className="flex justify-between items-end border-b border-gray-200 pb-4 px-20">
+        <div className="flex justify-between items-end border-b border-gray-200 pb-4 px-1">
             <div>
                 <h2 className="text-2xl font-black text-secondary uppercase tracking-tight">{title}</h2>
                 <p className="text-gray-400 text-sm font-medium">{subtitle}</p>

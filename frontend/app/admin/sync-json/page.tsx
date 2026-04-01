@@ -32,8 +32,6 @@ export default function SyncDecaPage() {
     const [running, setRunning] = useState(false);
     const [progress, setProgress] = useState(0);
     const [stats, setStats] = useState({ created: 0, updated: 0, failed: 0 });
-    const [isLyorSync, setIsLyorSync] = useState(false);
-    const [isGabrielaSync, setIsGabrielaSync] = useState(false);
     const cancelRef = useRef(false);
 
     const PREVIEW_LIMIT = 100;
@@ -60,92 +58,6 @@ export default function SyncDecaPage() {
         };
         reader.readAsText(file);
         setFileOptions(file);
-        setIsLyorSync(false);
-        setIsGabrielaSync(false);
-    };
-
-    const loadLyorProducts = async () => {
-        try {
-            const res = await fetch(`${API}/static-images/products.json`);
-            if (!res.ok) throw new Error('Não foi possível carregar o arquivo products.json');
-            const json = await res.json();
-
-            // Filter products with Brand being LYOR
-            const lyorOnly = json.filter((p: any) =>
-                (p.name && p.name.toUpperCase().includes('LYOR'))
-            ).map((p: any) => ({
-                code: p.code,
-                name: p.name,
-                price: p.price,
-                brand: 'LYOR',
-                image_file: p.image_file
-            }));
-
-            if (lyorOnly.length === 0) {
-                toast.error('Nenhum produto Lyor encontrado no JSON.');
-                return;
-            }
-
-            setProducts(lyorOnly);
-            setIsLyorSync(true);
-            setIsGabrielaSync(false);
-            setFileOptions(null);
-            toast.success(`${lyorOnly.length} produtos Lyor carregados.`);
-        } catch (err) {
-            console.error(err);
-            toast.error('Erro ao carregar produtos Lyor da pasta local.');
-        }
-    };
-
-    const loadGabrielaProducts = async () => {
-        try {
-            const token = await getIdToken();
-            const headers = { Authorization: `Bearer ${token}` };
-
-            let allGabriela: any[] = [];
-            let page = 1;
-            let totalPages = 1;
-
-            toast.info('Buscando produtos Gabriela no banco de dados...');
-            do {
-                const res = await fetch(`${API}/products?brand=GABRIELA&limit=100&page=${page}`, { headers });
-                if (!res.ok) throw new Error('Falha ao buscar produtos Gabriela');
-                const response = await res.json();
-
-                const productsPage = response.data.data || [];
-                totalPages = response.data.totalPages || 1;
-
-                const needSync = productsPage.filter((p: any) =>
-                    p.imageurl && !p.imageurl.includes('res.cloudinary.com')
-                );
-
-                allGabriela = [...allGabriela, ...needSync];
-                page++;
-            } while (page <= totalPages);
-
-            if (allGabriela.length === 0) {
-                toast.info('Nenhum produto Gabriela precisando de sincronização de imagem.');
-                return;
-            }
-
-            const formatted = allGabriela.map(p => ({
-                _id: p._id,
-                code: p.product_code,
-                name: p.description,
-                price: p.base_price,
-                brand: 'GABRIELA',
-                imageurl: p.imageurl
-            }));
-
-            setProducts(formatted);
-            setIsGabrielaSync(true);
-            setIsLyorSync(false);
-            setFileOptions(null);
-            toast.success(`${formatted.length} produtos Gabriela carregados para sync.`);
-        } catch (err) {
-            console.error(err);
-            toast.error('Erro ao carregar produtos Gabriela.');
-        }
     };
 
     const processConcurrently = async (items: DecaProduct[], concurrency: number) => {
@@ -195,98 +107,6 @@ export default function SyncDecaPage() {
             try {
                 const bName = (item.brand || 'OUTROS').toUpperCase();
                 await ensureBrandExists(bName);
-
-                if (isGabrielaSync && item._id && item.imageurl) {
-                    try {
-                        const imgRes = await fetch(`/api/proxy-image?url=${encodeURIComponent(item.imageurl)}`);
-                        if (!imgRes.ok) throw new Error(`Proxy error: ${imgRes.status}`);
-
-                        const blob = await imgRes.blob();
-                        const formData = new FormData();
-                        formData.append('image', blob, `${item.code}.png`);
-
-                        const patchRes = await fetch(`${API}/products/${item._id}/image`, {
-                            method: 'PATCH',
-                            headers: { Authorization: `Bearer ${token}` },
-                            body: formData
-                        });
-
-                        if (patchRes.ok) {
-                            u++;
-                        } else {
-                            f++;
-                        }
-                    } catch (imgErr: any) {
-                        const is404 = imgErr.message && imgErr.message.includes('404');
-                        if (is404) {
-                            console.warn(`Imagem original não encontrada (404) para Gabriela ${item.code}`);
-                        } else {
-                            console.error(`Erro ao processar imagem para Gabriela ${item.code}:`, imgErr);
-                        }
-                        f++;
-                    }
-                    return;
-                }
-
-                // If Lyor Sync, attempt to upload image from local static folder
-                if (isLyorSync && item.image_file) {
-                    try {
-                        const imgRes = await fetch(`${API}/static-images/${item.image_file}`);
-                        if (imgRes.ok) {
-                            const blob = await imgRes.blob();
-                            const formData = new FormData();
-                            formData.append('image', blob, item.image_file);
-                            formData.append('code', item.code);
-                            formData.append('description', item.name.toUpperCase());
-                            formData.append('brand', bName);
-                            formData.append('price', item.price.toString());
-
-                            const uploadRes = await fetch(`${API}/products/upload`, {
-                                method: 'POST',
-                                headers: {
-                                    Authorization: `Bearer ${token}`
-                                },
-                                body: formData
-                            });
-
-                            if (uploadRes.ok) {
-                                c++;
-                                return;
-                            } else if (uploadRes.status === 400) {
-                                // Likely duplicate code, try to update instead
-                                const data = await uploadRes.json();
-                                if (data.error?.code === 'DUPLICATE_CODE') {
-                                    // Fetch existing product to get its ID
-                                    const getRes = await fetch(`${API}/products/${encodeURIComponent(item.code)}`, { headers });
-                                    if (getRes.ok) {
-                                        const existingData = await getRes.json();
-                                        const productId = existingData.data._id;
-
-                                        // Update with new image
-                                        const updateFormData = new FormData();
-                                        updateFormData.append('image', blob, item.image_file);
-                                        updateFormData.append('description', item.name.toUpperCase());
-                                        updateFormData.append('brand_name', bName);
-                                        updateFormData.append('base_price', item.price.toString());
-
-                                        const putRes = await fetch(`${API}/products/${productId}`, {
-                                            method: 'PUT',
-                                            headers: { Authorization: `Bearer ${token}` },
-                                            body: updateFormData
-                                        });
-
-                                        if (putRes.ok) {
-                                            u++;
-                                            return;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    } catch (imgErr) {
-                        console.error(`Erro ao processar imagem para ${item.code}:`, imgErr);
-                    }
-                }
 
                 // Normal JSON Sync logic (fallback or non-Lyor)
                 const getRes = await fetch(`${API}/products/${encodeURIComponent(item.code)}`, { headers });
@@ -429,25 +249,6 @@ export default function SyncDecaPage() {
                     "
                     disabled={running}
                 />
-            </div>
-
-            <div className="flex gap-4">
-                <button
-                    onClick={loadLyorProducts}
-                    disabled={running}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg"
-                >
-                    <UploadCloud size={20} />
-                    Carregar Lyor (Local JSON)
-                </button>
-                <button
-                    onClick={loadGabrielaProducts}
-                    disabled={running}
-                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg"
-                >
-                    <UploadCloud size={20} />
-                    Sync Imagens Gabriela
-                </button>
             </div>
 
             {/* JSON Preview */}

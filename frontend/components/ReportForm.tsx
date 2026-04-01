@@ -340,7 +340,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
                             <h2 className="text-lg font-bold">Visualização do Relatório</h2>
                         </div>
                         <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
-                            <button 
+                            <button
                                 onClick={() => {
                                     const link = document.createElement('a');
                                     link.href = pdfPreviewUrl;
@@ -352,7 +352,7 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
                                 <DownloadIcon size={20} />
                                 Salvar PDF
                             </button>
-                            <button 
+                            <button
                                 onClick={() => {
                                     URL.revokeObjectURL(pdfPreviewUrl);
                                     setPdfPreviewUrl(null);
@@ -365,8 +365,8 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
                         </div>
                     </div>
                     <div className="flex-1 w-full p-2 md:p-8 overflow-hidden flex justify-center items-center">
-                        <iframe 
-                            src={pdfPreviewUrl} 
+                        <iframe
+                            src={pdfPreviewUrl}
                             className="w-full h-full max-w-5xl rounded-xl bg-white shadow-2xl"
                             title="PDF Preview"
                         />

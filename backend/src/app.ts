@@ -7,6 +7,7 @@ import path from 'path';
 import config from './config';
 import { errorHandler } from './middleware/errorHandler';
 import { createSuccessResponse } from './types/apiResponse';
+import { connectDatabase } from './config/database';
 
 // Create Express app
 const app: Express = express();
@@ -122,6 +123,16 @@ import reportRoutes from './routes/reportRoutes';
 import brandRoutes from './routes/brandRoutes';
 import userRoutes from './routes/userRoutes';
 import importRoutes from './routes/importRoutes';
+
+// Ensure DB connection for serverless environments (e.g., Vercel)
+app.use(async (_req: Request, _res: Response, next) => {
+    try {
+        await connectDatabase();
+        next();
+    } catch (err) {
+        next(err);
+    }
+});
 
 // API routes
 const apiBase = `/api/${config.apiVersion}`;

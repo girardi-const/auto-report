@@ -2,11 +2,24 @@ import mongoose from 'mongoose';
 import config from './index';
 import { logger } from '../utils/logger';
 
+let isConnected = false;
+
 export const connectDatabase = async (): Promise<void> => {
+    if (isConnected) {
+        return;
+    }
+
+    if (mongoose.connection.readyState >= 1) {
+        isConnected = true;
+        return;
+    }
+
     try {
         await mongoose.connect(config.mongodb.uri, {
             dbName: config.mongodb.dbName,
         });
+
+        isConnected = true;
 
         logger.info(`✅ MongoDB connected successfully to database: ${config.mongodb.dbName}`);
 
@@ -38,6 +51,6 @@ export const connectDatabase = async (): Promise<void> => {
         });
     } catch (error) {
         logger.error('Failed to connect to MongoDB:', error);
-        process.exit(1);
+        throw error;
     }
 };

@@ -1,24 +1,16 @@
-import './instrument';
-
 import express, { Express, Request, Response } from 'express';
-import { rateLimit } from "express-rate-limit"
+import { rateLimit, ipKeyGenerator } from "express-rate-limit"
 import cors from 'cors';
 import compression from 'compression';
 import helmet from 'helmet';
 import path from 'path';
 import config from './config';
 import { errorHandler } from './middleware/errorHandler';
-import { logger } from './utils/logger';
 import { createSuccessResponse } from './types/apiResponse';
 
 // Create Express app
 const app: Express = express();
 
-// Connect to database
-import { connectDatabase } from './config/database';
-connectDatabase().catch(err => {
-    console.error('Failed to connect to MongoDB:', err);
-});
 
 // CORS configuration - MUST be first to handle preflight requests
 app.use(
@@ -33,30 +25,58 @@ app.use(
 // Response compression — reduces JSON payload size by 60-80%
 app.use(compression());
 
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutos
-    limit: 20000, // 20000 req por IP por janela (aumentado para permitir integrações/bulk uploads)
-    keyGenerator: (req: Request) => {
-        // Use authorization token if present to identify specific users, otherwise fallback to IP
-        return req.headers.authorization || req.ip || 'unknown_ip';
+// Define standard rate limiter for most routes
+const standardLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minuto
+    limit: 100, // 100 requisições por IP/usuário por minuto
+    validate: { ip: false },
+    keyGenerator: (req: Request): string => {
+        const ip = req.ip || req.socket.remoteAddress || 'unknown';
+        return ipKeyGenerator(ip);
     },
     message: {
-        error: 'Muitas requisições deste usuário/IP, tente novamente após 15 minutos.',
-        retryAfter: '15 minutos',
+        error: 'Muitas requisições deste usuário/IP, tente novamente após um minuto.',
+        retryAfter: '1 minuto',
     },
     statusCode: 429,
-    standardHeaders: true, // Habilita cabeçalhos padrão `RateLimit-*`
-    legacyHeaders: false, // Desativa cabeçalhos antigos `X-RateLimit-*`
+    standardHeaders: true,
+    legacyHeaders: false,
     handler: (_req, res) => {
         res.status(429).json({
             error: 'Limite de requisições excedido',
-            message: 'Muitas requisições deste usuário/IP, tente novamente após 15 minutos.',
+            message: 'Muitas requisições deste usuário/IP, tente novamente após um minuto.',
+            retryAfter: '1 minuto',
+        });
+    }
+});
+
+// Define bulk limiter for imports and massive product updates
+const bulkActionLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    limit: 20000, // limite estendido para uploads em lote e sincronizações
+    validate: { ip: false },
+    keyGenerator: (req: Request): string => {
+        const ip = req.ip || req.socket.remoteAddress || 'unknown';
+        return ipKeyGenerator(ip);
+    },
+    message: {
+        error: 'Muitas requisições em lote deste usuário/IP, tente novamente após 15 minutos.',
+        retryAfter: '15 minutos',
+    },
+    statusCode: 429,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (_req, res) => {
+        res.status(429).json({
+            error: 'Limite de requisições em lote excedido',
+            message: 'Muitas requisições em lote deste usuário/IP, tente novamente após 15 minutos.',
             retryAfter: '15 minutos',
         });
     }
 });
 
-app.use(limiter);
+// Note: Limiters are now applied specifically to routes rather than globally
+
 
 // Security middleware
 app.use(helmet());
@@ -71,18 +91,19 @@ app.use((req: Request, _res: Response, next) => {
     next();
 });
 
-// Request logging middleware
-app.use((req: Request, _res: Response, next) => {
-    logger.info({
-        requestId: req.id,
-        method: req.method,
-        path: req.path,
-        ip: req.ip,
-        userAgent: req.get('user-agent'),
+// Console info for routes successfully called
+app.use((req: Request, res: Response, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        if (res.statusCode >= 200 && res.statusCode < 400) {
+            console.log(`✅ [${req.method}] ${req.originalUrl || req.url} - ${res.statusCode} (${duration}ms)`);
+        } else {
+            console.log(`❌ [${req.method}] ${req.originalUrl || req.url} - ${res.statusCode} (${duration}ms)`);
+        }
     });
     next();
 });
-
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
     res.json(
@@ -105,11 +126,14 @@ import importRoutes from './routes/importRoutes';
 // API routes
 const apiBase = `/api/${config.apiVersion}`;
 
-app.use(`${apiBase}/products`, productRoutes);
-app.use(`${apiBase}/reports`, reportRoutes);
-app.use(`${apiBase}/brands`, brandRoutes);
-app.use(`${apiBase}/users`, userRoutes);
-app.use(`${apiBase}/admin/imports`, importRoutes);
+// Apply standard limiter to general routes
+app.use(`${apiBase}/reports`, standardLimiter, reportRoutes);
+app.use(`${apiBase}/brands`, standardLimiter, brandRoutes);
+app.use(`${apiBase}/users`, standardLimiter, userRoutes);
+
+// Apply bulk limiter to routes that need high volume processing (Imports and Products)
+app.use(`${apiBase}/products`, bulkActionLimiter, productRoutes);
+app.use(`${apiBase}/admin/imports`, bulkActionLimiter, importRoutes);
 
 // Static images route
 app.use(`${apiBase}/static-images`, express.static(path.join(__dirname, '../../images')));

@@ -2,6 +2,7 @@
 import app from './app';
 import config from './config';
 import { connectDatabase } from './config/database';
+import { initSentryAsync } from './instrument';
 import { logger } from './utils/logger';
 
 // Extend Express Request type to include id
@@ -20,25 +21,21 @@ declare global {
 
 const startServer = async () => {
     try {
+
+        await initSentryAsync();
         // Connect to MongoDB
         await connectDatabase();
 
         // Start Express server
         const server = app.listen(config.port, () => {
             logger.info(`
-╔═══════════════════════════════════════════════════════╗
-║                                                       ║
-║   🚀 Girardi Auto Report API Server                  ║
-║                                                       ║
-║   Environment: ${config.env.padEnd(37)}               ║
-║   Port: ${config.port.toString().padEnd(44)}          ║
-║   API Version: ${config.apiVersion.padEnd(40)}        ║
-║   MongoDB: Connected ✅                               ║
-║                                                       ║
-║   Health: http://localhost:${config.port}/health       ║
-║   API: http://localhost:${config.port}/api/${config.apiVersion}║
-║                                                       ║
-╚═══════════════════════════════════════════════════════╝
+    🚀 Girardi Auto Report API Server                  
+         Environment: ${config.env.padEnd(37)}               
+         Port: ${config.port.toString().padEnd(44)}          
+         API Version: ${config.apiVersion.padEnd(40)}        
+         MongoDB: Connected ✅                               
+         Health: http://localhost:${config.port}/health       
+         API: http://localhost:${config.port}/api/${config.apiVersion}
       `);
         });
 

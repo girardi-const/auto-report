@@ -49,6 +49,9 @@ interface Config {
         apiKey: string;
         apiSecret: string;
     };
+    sentry: {
+        dsn: string;
+    };
 }
 
 const config: Config = {
@@ -103,6 +106,9 @@ const config: Config = {
         cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
         apiKey: process.env.CLOUDINARY_API_KEY || '',
         apiSecret: process.env.CLOUDINARY_API_SECRET || '',
+    },
+    sentry: {
+        dsn: process.env.SENTRY_DSN || '',
     },
 };
 

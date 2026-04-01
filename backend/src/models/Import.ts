@@ -51,7 +51,7 @@ const ImportSummarySchema = new Schema<IImportSummary>(
         failed: { type: Number, default: 0 },
         errors: { type: [ImportErrorSchema], default: [] },
     },
-    { _id: false }
+    { _id: false, suppressReservedKeysWarning: true }
 );
 
 const ImportSchema = new Schema<IImport>(

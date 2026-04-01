@@ -1,4 +1,4 @@
-import { Trash2, PackageSearch } from "lucide-react";
+import { Trash2, PackageSearch, Edit2 } from "lucide-react";
 import { SearchProductModal } from "./SearchProductModal";
 import { useState } from "react";
 import { Section, Product, SectionCardProps, CartItem } from "../types";
@@ -29,15 +29,19 @@ export function SectionCard({
                 {/* Section Header */}
                 <div className="bg-secondary p-5 flex justify-between items-center">
                     <div className="flex items-center gap-4">
-                        <div className="w-8 h-8 bg-primary rounded flex items-center justify-center text-white font-black italic">
+                        <div className="w-8 h-8 bg-primary rounded flex items-center justify-center text-white font-black italic shadow-sm">
                             G
                         </div>
-                        <input
-                            type="text"
-                            value={section.name}
-                            onChange={(e) => actions.updateSectionName(section.id, e.target.value)}
-                            className="bg-transparent text-white font-black text-lg outline-none border-b-2 border-transparent focus:border-primary/50 transition-all uppercase tracking-tight"
-                        />
+                        <div className="relative flex items-center group">
+                            <input
+                                type="text"
+                                value={section.name}
+                                onChange={(e) => actions.updateSectionName(section.id, e.target.value)}
+                                className="bg-transparent text-white font-black text-lg outline-none border-b-2 border-transparent hover:border-white/20 focus:border-primary/50 transition-all uppercase tracking-tight pr-8 py-1"
+                                placeholder="Nome da Seção"
+                            />
+                            <Edit2 size={14} className="absolute right-2 text-white/30 group-hover:text-white/60 transition-colors pointer-events-none" />
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-6">

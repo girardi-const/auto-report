@@ -134,23 +134,31 @@ export default function ReportForm({ onSaveSuccess, onSaveError, initialReportId
         }
     };
 
-    const validSections = sections.map(s => {
-        const validProducts = s.products.filter(p => p.code && p.code.trim() !== "");
-        const groupedProducts = validProducts.reduce((acc, current) => {
-            const existing = acc.find(p => p.code === current.code);
-            if (existing) {
-                existing.units += current.units;
-            } else {
-                acc.push({ ...current });
-            }
-            return acc;
-        }, [] as typeof validProducts);
+    const validSections = sections
+        .map(s => {
+            const validProducts = s.products.filter(p => 
+                p.code && 
+                p.code.trim() !== "" &&
+                p.name &&
+                p.name !== "Produto não encontrado" &&
+                p.name.trim() !== ""
+            );
+            const groupedProducts = validProducts.reduce((acc, current) => {
+                const existing = acc.find(p => p.code === current.code);
+                if (existing) {
+                    existing.units += current.units;
+                } else {
+                    acc.push({ ...current });
+                }
+                return acc;
+            }, [] as typeof validProducts);
 
-        return {
-            ...s,
-            products: groupedProducts
-        };
-    });
+            return {
+                ...s,
+                products: groupedProducts
+            };
+        })
+        .filter(s => s.products.length > 0);
 
 
     const subtotalBeforeCash = validSections.reduce((acc, s) => acc + calculateSubtotal(s.products, s.discount), 0);

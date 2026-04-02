@@ -222,7 +222,7 @@ export function SearchProductModal({ isOpen, onClose, onSelect, onConfirm, multi
                 style={{ maxHeight: "88vh", animation: "modalSlideIn 0.18s cubic-bezier(0.22,1,0.36,1)" }}
             >
                 {/* Main Content Area */}
-                <div className={`flex flex-col ${multiSelect ? 'flex-1' : 'w-full'}`}>
+                <div className={`flex flex-col flex-1 min-h-0 ${multiSelect ? '' : 'w-full'}`}>
                     {/* ── Header ── */}
                     <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
                         <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">

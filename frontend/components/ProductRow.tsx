@@ -45,6 +45,8 @@ export function ProductRow({
     const [localDiscount, setLocalDiscount] = useState(product.discount.toString());
     const [isDiscountFocused, setIsDiscountFocused] = useState(false);
 
+    const isInvalid = !product.code || product.name === "Produto não encontrado";
+
     const handleSearchSelect = (catalogProduct: CatalogProduct) => {
         onCodeChange(catalogProduct.product_code);
     };
@@ -269,7 +271,8 @@ export function ProductRow({
                 <select
                     value={product.brand}
                     onChange={(e) => onUpdate({ brand: e.target.value })}
-                    className="w-full bg-transparent outline-none font-bold text-xs border-2 border-gray-100 rounded-lg px-2 py-2 focus:border-primary focus:bg-white transition-all appearance-none cursor-pointer"
+                    disabled={isInvalid}
+                    className="w-full bg-transparent outline-none font-bold text-xs border-2 border-gray-100 rounded-lg px-2 py-2 focus:border-primary focus:bg-white transition-all appearance-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     <option value="">Selecione a Marca</option>
                     {brands.map((brand) => (
@@ -282,7 +285,8 @@ export function ProductRow({
                     value={product.name}
                     onChange={(e) => onUpdate({ name: e.target.value })}
                     rows={3}
-                    className={`w-full bg-transparent outline-none border-none resize-none italic text-xs font-medium leading-snug break-words whitespace-normal text-start ${product.priceBase === 0 ? "text-gray-300" : "text-gray-500"}`}
+                    disabled={isInvalid}
+                    className={`w-full bg-transparent outline-none border-none resize-none italic text-xs font-medium leading-snug break-words whitespace-normal text-start ${isInvalid ? "text-gray-300 cursor-not-allowed" : "text-gray-500"}`}
                 />
             </td>
             <td className="px-4 py-4 relative">
@@ -294,10 +298,11 @@ export function ProductRow({
                         onChange={handlePriceChange}
                         onFocus={() => setIsFocused(true)}
                         onBlur={() => setIsFocused(false)}
+                        disabled={isInvalid}
                         className={`w-24 bg-transparent outline-none font-black border-2 rounded-lg px-2 py-2 transition-all text-right text-xs ${isPriceChanged
                             ? 'border-primary/40 bg-primary/5 text-primary focus:border-primary focus:bg-white'
                             : 'border-gray-100 focus:border-primary focus:bg-white'
-                            }`}
+                            } disabled:opacity-40 disabled:cursor-not-allowed`}
                     />
                     <div
                         className={`flex-shrink-0 overflow-hidden transition-all duration-300 ease-out ${isPriceChanged ? 'max-w-[60px] opacity-100' : 'max-w-0 opacity-0'
@@ -332,14 +337,16 @@ export function ProductRow({
                             onUpdate({ units: numValue });
                         }
                     }}
-                    className="w-full bg-transparent outline-none font-black border-2 border-gray-100 rounded-lg px-4 py-2 focus:border-primary focus:bg-white transition-all text-center text-xs"
+                    className="w-full bg-transparent outline-none font-black border-2 border-gray-100 rounded-lg px-4 py-2 focus:border-primary focus:bg-white transition-all text-center text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={isInvalid}
                 />
             </td>
             <td className="px-4 py-4">
                 <select
                     value={product.type || "UN"}
                     onChange={(e) => onUpdate({ type: e.target.value })}
-                    className="w-full bg-transparent outline-none font-black border-2 border-gray-100 rounded-lg px-2 py-2 focus:border-primary focus:bg-white transition-all text-center text-xs appearance-none cursor-pointer"
+                    disabled={isInvalid}
+                    className="w-full bg-transparent outline-none font-black border-2 border-gray-100 rounded-lg px-2 py-2 focus:border-primary focus:bg-white transition-all text-center text-xs appearance-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     <option value="UN">UN</option>
                     <option value="MT">MT²</option>
@@ -363,7 +370,8 @@ export function ProductRow({
                             onUpdate({ margin: 0 });
                         }
                     }}
-                    className="w-full bg-transparent outline-none font-black border-2 border-gray-100 rounded-lg px-2 py-2 focus:border-primary focus:bg-white transition-all text-center text-xs"
+                    className="w-full bg-transparent outline-none font-black border-2 border-gray-100 rounded-lg px-2 py-2 focus:border-primary focus:bg-white transition-all text-center text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={isInvalid}
                 />
             </td>
             <td className="px-4 py-4">
@@ -381,7 +389,8 @@ export function ProductRow({
                             onUpdate({ discount: 0 });
                         }
                     }}
-                    className="w-full bg-transparent outline-none font-black border-2 border-gray-100 rounded-lg px-2 py-2 focus:border-primary focus:bg-white transition-all text-center text-xs text-primary"
+                    className="w-full bg-transparent outline-none font-black border-2 border-gray-100 rounded-lg px-2 py-2 focus:border-primary focus:bg-white transition-all text-center text-xs text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={isInvalid}
                 />
             </td>
             <td className="px-4 py-4 text-right">

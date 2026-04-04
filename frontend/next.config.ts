@@ -193,6 +193,16 @@ const nextConfig: NextConfig = {
         hostname: "download-warehouse.sketchup.com",
         pathname: "/**",
       },
+      {
+        protocol: 'https',
+        hostname: 'ledart.com.br',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'blumenauiluminacao.com.br',
+        pathname: '/**',
+      },
     ],
   },
   async rewrites() {
@@ -289,6 +299,14 @@ const nextConfig: NextConfig = {
         source: "/api/avant2-images/:path*",
         destination: "https://www.avantlux.com.br/:path*",
       },
+      {
+        source: "/api/ledart-images/:path*",
+        destination: "https://ledart.com.br/:path*",
+      },
+      {
+        source: "/api/blumenau-images/:path*",
+        destination: "https://blumenauiluminacao.com.br/:path*",
+      }
     ];
   },
 };

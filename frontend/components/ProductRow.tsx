@@ -286,7 +286,7 @@ export function ProductRow({
                     onChange={(e) => onUpdate({ name: e.target.value })}
                     rows={3}
                     disabled={isInvalid}
-                    className={`w-full bg-transparent outline-none border-none resize-none italic text-xs font-medium leading-snug break-words whitespace-normal text-start ${isInvalid ? "text-gray-300 cursor-not-allowed" : "text-gray-500"}`}
+                    className={`w-full bg-transparent outline-none border-none resize-none italic text-xs font-medium leading-snug break-words whitespace-normal text-start ${isInvalid ? "text-gray-300 cursor-not-allowed" : "text-gray-800"}`}
                 />
             </td>
             <td className="px-4 py-4 relative">

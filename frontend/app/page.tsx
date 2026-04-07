@@ -5,7 +5,7 @@ import { useMongoUser } from "@/hooks/useMongoUser";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
-import { FileText, Database, History, UserPlus, PackagePlus, UploadCloud, Tag, Edit3 } from "lucide-react";
+import { FileText, Database, History, UserPlus, PackagePlus, UploadCloud, Tag, Edit3, LifeBuoy } from "lucide-react";
 import NameModal from "@/components/NameModal";
 
 export default function Home() {
@@ -71,6 +71,14 @@ export default function Home() {
       icon: Tag,
       glowColor: "#14b8a6", // teal-500
       delay: "-4s"
+    },
+    {
+      href: "/suporte",
+      title: "Suporte",
+      description: "Tire suas dúvidas, consulte o FAQ e repita o tutorial interativo do sistema.",
+      icon: LifeBuoy,
+      glowColor: "#6366f1",
+      delay: "-6s"
     }
   ];
 

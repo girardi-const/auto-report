@@ -5,8 +5,13 @@ import { PaginationSchema } from './reportValidator';
 export const ProductQuerySchema = PaginationSchema.extend({
     search: z.string().optional(),
     brand: z.string().optional(),
+    brands: z.string().transform(val => val.split(',')).or(z.array(z.string())).optional(),
+    minPrice: z.coerce.number().optional(),
+    maxPrice: z.coerce.number().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
     imageFilter: z.string().optional(),
-    sortBy: z.enum(['updatedAt', 'product_code']).default('updatedAt'),
+    sortBy: z.enum(['updatedAt', 'product_code', 'base_price']).default('updatedAt'),
     sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 

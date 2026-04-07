@@ -62,4 +62,7 @@ const ProductSchema = new Schema<IProduct>(
     }
 );
 
+ProductSchema.index({ updatedAt: -1 });
+ProductSchema.index({ base_price: 1 });
+
 export const Product = mongoose.model<IProduct>('Product', ProductSchema);

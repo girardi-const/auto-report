@@ -78,9 +78,9 @@ export class ProductService {
      * List products from the database with pagination and filters.
      */
     static async listProducts(
-        query: { search?: string; brand?: string; imageFilter?: string; page: number; limit: number; sortBy: string; sortOrder: 'asc' | 'desc' }
+        query: { search?: string; brand?: string; brands?: string[]; minPrice?: number; maxPrice?: number; startDate?: string; endDate?: string; imageFilter?: string; page: number; limit: number; sortBy: string; sortOrder: 'asc' | 'desc' }
     ): Promise<{ data: IProduct[]; total: number; page: number; totalPages: number }> {
-        const { search, brand, imageFilter, page, limit, sortBy, sortOrder } = query;
+        const { search, brand, brands, minPrice, maxPrice, startDate, endDate, imageFilter, page, limit, sortBy, sortOrder } = query;
         const skip = (page - 1) * limit;
         const sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 } as Record<string, 1 | -1>;
 
@@ -101,6 +101,26 @@ export class ProductService {
  
          if (brand) {
              filterList.push({ brand_name: brand });
+         } else if (brands && brands.length > 0) {
+             filterList.push({ brand_name: { $in: brands } });
+         }
+
+         if (minPrice !== undefined || maxPrice !== undefined) {
+             const priceFilter: any = {};
+             if (minPrice !== undefined) priceFilter.$gte = minPrice;
+             if (maxPrice !== undefined) priceFilter.$lte = maxPrice;
+             filterList.push({ base_price: priceFilter });
+         }
+
+         if (startDate || endDate) {
+             const dateFilter: any = {};
+             if (startDate) dateFilter.$gte = new Date(startDate);
+             if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                dateFilter.$lte = end;
+             }
+             filterList.push({ updatedAt: dateFilter });
          }
  
          if (imageFilter === 'true') {

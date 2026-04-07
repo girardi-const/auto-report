@@ -156,6 +156,11 @@ export default function Header() {
                                 Histórico
                             </Link>
                         </li>
+                        <li>
+                            <Link href="/suporte" className="hover:text-primary transition-colors">
+                                Suporte
+                            </Link>
+                        </li>
                     </ul>
                 </nav>
             )}

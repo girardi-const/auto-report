@@ -15,14 +15,19 @@ export async function GET(request: NextRequest) {
 
         let imageUrl = cleanedUrl;
 
-        // Cloudinary specific optimization: request PNG directly if it's an uploaded image.
-        // Cloudinary supports on-the-fly format conversion by extension or transformations.
-        // This avoids issues with formats like JP2 which might not be supported by Sharp.
-        if (imageUrl.includes('res.cloudinary.com') && imageUrl.includes('/upload/')) {
+        // Cloudinary specific optimization: request PNG directly if it's an uploaded image
+        // and NOT already a standard web format. Cloudinary supports on-the-fly format 
+        // conversion by extension, but large images might fail to convert to PNG on their end
+        // due to size limits (e.g. 10MB/25MB). 
+        // We only do this for potentially unsupported formats like JP2 to let Cloudinary handle them.
+        const isStandardFormat = /\.(jpe?g|png|webp|gif|avif)$/i.test(imageUrl.split('?')[0]);
+        if (imageUrl.includes('res.cloudinary.com') && imageUrl.includes('/upload/') && !isStandardFormat) {
             // Remove existing extension and replace with .png (or append it)
             // Example: .../image/upload/v123/img.jp2 -> .../image/upload/v123/img.png
-            imageUrl = imageUrl.replace(/\.[a-z0-9]+(?=\?|$)/i, '.png');
-            if (!imageUrl.toLowerCase().endsWith('.png') && !imageUrl.includes('?')) {
+            const hasExtension = /\.[a-z0-9]+(?=\?|$)/i.test(imageUrl);
+            if (hasExtension) {
+                imageUrl = imageUrl.replace(/\.[a-z0-9]+(?=\?|$)/i, '.png');
+            } else if (!imageUrl.includes('?')) {
                 imageUrl += '.png';
             }
         }

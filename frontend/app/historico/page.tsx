@@ -229,7 +229,7 @@ export default function ReportsPage() {
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `${report.title.replace(/\s+/g, '_')}.pdf`;
+            link.download = `Orçamento_${report.title.replace(/\s+/g, '_')}.pdf`;
             link.click();
             URL.revokeObjectURL(url);
         } catch (e) {

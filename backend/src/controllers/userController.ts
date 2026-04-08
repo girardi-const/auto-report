@@ -29,7 +29,8 @@ const CreateMeSchema = z.object({
  * Lists all Firebase Auth users (admin only).
  */
 export const listUsers = asyncHandler(
-    async (_req: Request, res: Response, _next: NextFunction) => {
+    async (req: Request, res: Response, _next: NextFunction) => {
+        const isAdmin = !!req.firebaseUser?.admin;
         const result = await getFirebaseAuth().listUsers(1000);
 
         // Fetch all mongo users to map names
@@ -41,16 +42,26 @@ export const listUsers = asyncHandler(
 
         const users = result.users.map((u) => {
             const mUser = mongoUserMap.get(u.uid);
-            return {
+            
+            // Base data everyone can see
+            const baseUser = {
                 uid: u.uid,
                 email: u.email ?? null,
-                name: mUser?.name || 'Sem nome', // Default if not found in Mongo
-                telephone: mUser?.telephone || '',
-                disabled: u.disabled,
-                admin: !!(u.customClaims && u.customClaims.admin),
-                createdAt: u.metadata.creationTime ?? null,
-                lastSignIn: u.metadata.lastSignInTime ?? null,
+                name: mUser?.name || 'Sem nome',
             };
+
+            if (isAdmin) {
+                return {
+                    ...baseUser,
+                    telephone: mUser?.telephone || '',
+                    disabled: u.disabled,
+                    admin: !!(u.customClaims && u.customClaims.admin),
+                    createdAt: u.metadata.creationTime ?? null,
+                    lastSignIn: u.metadata.lastSignInTime ?? null,
+                };
+            }
+
+            return baseUser;
         });
 
         res.json(createSuccessResponse(users));

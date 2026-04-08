@@ -33,12 +33,14 @@ import {
     CheckSquare,
     Copy,
 } from 'lucide-react';
+import { useMongoUser } from '@/hooks/useMongoUser';
 
 // ─── Helpers & Components Imported ──────────────────────────────────────────
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ReportsPage() {
     const { user, loading: authLoading, isAdmin } = useAuth();
+    const { mongoUser } = useMongoUser();
     const router = useRouter();
     const { users, fetchUsers } = useUsers();
     const { deleteManyReports, deletingMany, saveReport } = useReportActions();
@@ -52,6 +54,15 @@ export default function ReportsPage() {
     const [page, setPage] = useState(1);
     const limit = 20;
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hasInitializedRef = useRef(false);
+
+    // Set default filter to current user once mongoUser is loaded
+    useEffect(() => {
+        if (mongoUser?.name && !hasInitializedRef.current) {
+            setCreatorFilter(mongoUser.name);
+            hasInitializedRef.current = true;
+        }
+    }, [mongoUser]);
 
     // Fetch dynamic reports from API
     const { reports, loading, error, refetch, pagination } = useReports({
@@ -84,10 +95,10 @@ export default function ReportsPage() {
 
     const hasFilters = rawSearch !== '' || dateFrom !== '' || dateTo !== '' || creatorFilter !== '';
 
-    // Admin Users Loader for filters
+    // Fetch Users Loader for filters
     useEffect(() => {
-        if (isAdmin) fetchUsers();
-    }, [isAdmin, fetchUsers]);
+        if (user) fetchUsers();
+    }, [user, fetchUsers]);
 
     // Modal state
     const [deleteTarget, setDeleteTarget] = useState<SavedReport | null>(null);

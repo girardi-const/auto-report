@@ -22,7 +22,7 @@ router.post('/me', requireAuth, createMe);
  */
 
 /** GET /api/v1/users — list all Firebase Auth users */
-router.get('/', requireAdmin, listUsers);
+router.get('/', requireAuth, listUsers);
 
 /** POST /api/v1/users — create a new user (email + password) */
 router.post('/', requireAdmin, createUser);

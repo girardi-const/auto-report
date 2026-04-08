@@ -46,37 +46,12 @@ export const getReportsByUser = asyncHandler(
             }
         }
 
-        if (isAdmin) {
-            // Admins see every report in the database
-            const [total, reports] = await Promise.all([
-                Report.countDocuments(baseFilter),
-                Report.find(baseFilter).sort(sort).skip(skip).limit(limit),
-            ]);
-
-            res.json(
-                createSuccessResponse({
-                    data: reports,
-                    page,
-                    limit,
-                    total,
-                    totalPages: Math.ceil(total / limit),
-                })
-            );
-            return;
-        }
-
-        // Regular users: validate that the requested userId is their own
-        const { userId } = req.params;
-        if (userId !== uid) {
-            throw createForbiddenError(
-                'Você não tem permissão para acessar os relatórios deste usuário'
-            );
-        }
-
-        const userFilter = { ...baseFilter, creator_id: uid };
+        // Both admins and regular users can see reports.
+        // We now allow "see all" for everyone if no creator_name filter is applied.
+        // Ownership for edit/delete is still enforced in other handlers.
         const [total, reports] = await Promise.all([
-            Report.countDocuments(userFilter),
-            Report.find(userFilter).sort(sort).skip(skip).limit(limit),
+            Report.countDocuments(baseFilter),
+            Report.find(baseFilter).sort(sort).skip(skip).limit(limit),
         ]);
 
         res.json(

@@ -53,8 +53,8 @@ export function HistoricoFilters({
                 />
             </div>
 
-            {/* Creator Filter (Admin) */}
-            {isAdmin && users.length > 0 && (
+            {/* Creator Filter */}
+            {users.length > 0 && (
                 <div className="relative min-w-[200px]">
                     <select
                         value={creatorFilter}

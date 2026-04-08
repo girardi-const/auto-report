@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
         pathname: "/**",
       },
       {
+        protocol: 'https',
+        hostname: 'dw5j136hw6wkc.cloudfront.net',
+        pathname: '/**',
+      },
+      {
         protocol: "https",
         hostname: "dexcoprod.vteximg.com.br",
         pathname: "/**",

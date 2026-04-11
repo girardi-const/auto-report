@@ -12,47 +12,167 @@ import {
 const router = Router();
 
 /**
- * GET /api/v1/reports/:userId
- * verifyToken → controller checks admin claim:
- *   - admin  → returns ALL reports in the DB
- *   - regular user → only their own reports (403 if :userId !== token uid)
+ * @swagger
+ * /reports/{userId}:
+ *   get:
+ *     summary: Get all reports for a user or all if admin
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user
+ *     responses:
+ *       200:
+ *         description: A detailed report response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CreateReport'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       403:
+ *         description: Forbidden (Not the owner nor admin)
+ *       404:
+ *         description: Report not found
  */
 router.get('/:userId', verifyToken, getReportsByUser);
 
 /**
- * GET /api/v1/reports/report/:reportId
- * Registered before /:userId to avoid route conflicts.
- * verifyToken → owner or admin only.
- *
- * NOTE: /report/:reportId is a literal prefix segment so Express will
- * match it before the dynamic /:userId segment.
+ * @swagger
+ * /reports/report/{reportId}:
+ *   get:
+ *     summary: Get a specific report by ID
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: reportId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Report details
  */
 router.get('/report/:reportId', verifyToken, getReport);
 
 /**
- * POST /api/v1/reports
- * verifyToken → body validated against CreateReportSchema.
- * creator_id is always set from the verified token.
+ * @swagger
+ * /reports:
+ *   post:
+ *     summary: Create a new report
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateReport'
+ *     responses:
+ *       201:
+ *         description: Report created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CreateReport'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Unauthorized
  */
 router.post('/', verifyToken, createReport);
 
 /**
- * POST /api/v1/reports/batch-delete
- * verifyToken → deletes multiple reports; each must be owned by caller (or caller is admin).
- * Must be registered BEFORE /:reportId to avoid route conflicts.
+ * @swagger
+ * /reports/batch-delete:
+ *   post:
+ *     summary: Delete multiple reports
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reportIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Reports deleted
  */
 router.post('/batch-delete', verifyToken, batchDeleteReports);
 
 
 /**
- * PUT /api/v1/reports/:reportId
- * verifyToken → owner or admin only. Body validated against UpdateReportSchema.
+ * @swagger
+ * /reports/{reportId}:
+ *   put:
+ *     summary: Update a report
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: reportId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateReport'
+ *     responses:
+ *       200:
+ *         description: Report updated successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Report not found
  */
 router.put('/:reportId', verifyToken, updateReport);
 
 /**
- * DELETE /api/v1/reports/:reportId
- * verifyToken → owner or admin only.
+ * @swagger
+ * /reports/{reportId}:
+ *   delete:
+ *     summary: Delete a report
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: reportId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Report deleted
  */
 router.delete('/:reportId', verifyToken, deleteReport);
 

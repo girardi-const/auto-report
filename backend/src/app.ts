@@ -8,6 +8,8 @@ import config from './config';
 import { errorHandler } from './middleware/errorHandler';
 import { createSuccessResponse } from './types/apiResponse';
 import { connectDatabase } from './config/database';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 
 // Create Express app
 const app: Express = express();
@@ -145,6 +147,15 @@ app.use(`${apiBase}/users`, standardLimiter, userRoutes);
 // Apply bulk limiter to routes that need high volume processing (Imports and Products)
 app.use(`${apiBase}/products`, bulkActionLimiter, productRoutes);
 app.use(`${apiBase}/admin/imports`, bulkActionLimiter, importRoutes);
+
+// Swagger Documentation Route
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Girardi Auto Report API Docs',
+    swaggerOptions: {
+        supportedSubmitMethods: ['get'] // Disables 'Try it out' for POST, PUT, DELETE, PATCH
+    }
+}));
 
 // Static images route
 app.use(`${apiBase}/static-images`, express.static(path.join(__dirname, '../../images')));

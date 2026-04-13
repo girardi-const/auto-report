@@ -17,7 +17,7 @@ const router = Router();
 // Multer — HTTP transport concern, stays in the route file
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+    limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
     fileFilter: (_req, file, cb) => {
         if (!file.mimetype.startsWith('image/')) {
             return cb(new Error('Apenas arquivos de imagem são permitidos'));

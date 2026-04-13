@@ -168,7 +168,7 @@ export class ProductService {
         // Upload image to Cloudinary under the brand folder
         const result = await new Promise<any>((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
-                { folder, resource_type: 'image' },
+                { folder, resource_type: 'image', timeout: 120000 },
                 (error, result) => {
                     if (error) reject(error);
                     else resolve(result);
@@ -240,7 +240,7 @@ export class ProductService {
 
             const result = await new Promise<any>((resolve, reject) => {
                 const uploadStream = cloudinary.uploader.upload_stream(
-                    { folder, resource_type: 'image' },
+                    { folder, resource_type: 'image', timeout: 120000 },
                     (error, result) => {
                         if (error) reject(error);
                         else resolve(result);

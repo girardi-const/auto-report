@@ -179,9 +179,13 @@ export function ProductRow({
 
         try {
             setIsUploadingImage(true);
+            
+            const { compressImage } = await import("@/utils/image");
+            const compressed = await compressImage(file, 2);
+
             const token = await getIdToken();
             const formData = new FormData();
-            formData.append('image', file);
+            formData.append('image', compressed);
 
             const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
             const res = await fetch(`${API_URL}/products/${product.dbId}/image`, {

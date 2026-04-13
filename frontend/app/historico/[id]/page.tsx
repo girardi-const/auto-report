@@ -96,10 +96,51 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 }
                 const d = await res.json();
                 const fetched: SavedReport = d.data;
+
+                const frontSections = savedToFrontendSections(fetched);
+                const codeToDbId: Record<string, string> = {};
+                const missingCodes = new Set<string>();
+
+                frontSections.forEach(s => {
+                    s.products.forEach(p => {
+                        if (!p.dbId && p.code && p.name !== 'Produto não encontrado') {
+                            missingCodes.add(p.code);
+                        }
+                    });
+                });
+
+                if (missingCodes.size > 0) {
+                    await Promise.all(
+                        Array.from(missingCodes).map(async code => {
+                            try {
+                                const r = await fetch(`${API}/products/${encodeURIComponent(code)}`, {
+                                    headers: { Authorization: `Bearer ${token}` }
+                                });
+                                if (r.ok) {
+                                    const { data } = await r.json();
+                                    if (data && data._id) {
+                                        codeToDbId[code] = data._id;
+                                    }
+                                }
+                            } catch { }
+                        })
+                    );
+                }
+
+                const enrichedSections = frontSections.map(s => ({
+                    ...s,
+                    products: s.products.map(p => {
+                        if (!p.dbId && p.code && codeToDbId[p.code]) {
+                            return { ...p, dbId: codeToDbId[p.code] };
+                        }
+                        return p;
+                    })
+                }));
+
                 setReport(fetched);
                 setReportTitle(fetched.title);
-                // Pre-populate form state from saved report
-                setSections(savedToFrontendSections(fetched));
+                // Pre-populate form state with dynamically enriched sections
+                setSections(enrichedSections);
                 if (fetched.especificador) setEspecificador(fetched.especificador);
                 if (fetched.consultor) setConsultor(fetched.consultor);
                 if (fetched.consultorPhone) setConsultorPhone(fetched.consultorPhone);
@@ -120,31 +161,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, id]);
 
-    // Enrich products with dbId from catalog to enable image and price editing
-    useEffect(() => {
-        if (catalogProducts.length > 0 && report) {
-            setSections(prevSections => {
-                let hasChanges = false;
-                const newSections = prevSections.map(s => {
-                    const newProducts = s.products.map(p => {
-                        if (!p.dbId && p.code) {
-                            const match = catalogProducts.find(cp => 
-                                cp.product_code.toLowerCase() === p.code.toLowerCase()
-                            );
-                            if (match && match._id) {
-                                hasChanges = true;
-                                return { ...p, dbId: match._id };
-                            }
-                        }
-                        return p;
-                    });
-                    const sectionChanged = newProducts.some((np, i) => np !== s.products[i]);
-                    return sectionChanged ? { ...s, products: newProducts } : s;
-                });
-                return hasChanges ? newSections : prevSections;
-            });
-        }
-    }, [catalogProducts, report, setSections]);
+
 
     const canEdit = !!user && (isAdmin || report?.creator_id === user.uid);
 

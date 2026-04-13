@@ -120,6 +120,32 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, id]);
 
+    // Enrich products with dbId from catalog to enable image and price editing
+    useEffect(() => {
+        if (catalogProducts.length > 0 && report) {
+            setSections(prevSections => {
+                let hasChanges = false;
+                const newSections = prevSections.map(s => {
+                    const newProducts = s.products.map(p => {
+                        if (!p.dbId && p.code) {
+                            const match = catalogProducts.find(cp => 
+                                cp.product_code.toLowerCase() === p.code.toLowerCase()
+                            );
+                            if (match && match._id) {
+                                hasChanges = true;
+                                return { ...p, dbId: match._id };
+                            }
+                        }
+                        return p;
+                    });
+                    const sectionChanged = newProducts.some((np, i) => np !== s.products[i]);
+                    return sectionChanged ? { ...s, products: newProducts } : s;
+                });
+                return hasChanges ? newSections : prevSections;
+            });
+        }
+    }, [catalogProducts, report, setSections]);
+
     const canEdit = !!user && (isAdmin || report?.creator_id === user.uid);
 
     const showSaved = (status: 'saved' | 'error') => {
@@ -428,7 +454,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                                     cashDiscount: report.cash_discount,
                                     delivery_value: report.delivery_value,
                                     clientInfo: report.client_info,
-                                    sections: savedToFrontendSections(report)
+                                    sections: sections
                                 }}
                             />
                         </div>

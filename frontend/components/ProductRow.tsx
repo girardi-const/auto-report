@@ -163,14 +163,10 @@ export function ProductRow({
         }
     };
 
-    const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png"];
-    const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png"];
-
     const handleImageUpload = async (file: File) => {
-        const ext = "." + file.name.split(".").pop()?.toLowerCase();
-        if (!ALLOWED_TYPES.includes(file.type) || !ALLOWED_EXTENSIONS.includes(ext)) {
+        if (!file.type.startsWith("image/")) {
             toast.error("Formato de imagem inválido", {
-                description: `Apenas arquivos JPG e PNG são suportados. O arquivo "${file.name}" não é permitido.`,
+                description: `Apenas arquivos de imagem são suportados. O arquivo "${file.name}" não é permitido.`,
                 duration: 5000,
             });
             return;
@@ -253,13 +249,13 @@ export function ProductRow({
                                 <label className="absolute inset-0 bg-black/50 opacity-0 group-hover/image:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer">
                                     <UploadCloud size={16} className="text-white mb-1" />
                                     <span className="text-[8px] font-black text-white uppercase tracking-widest text-center px-1">Alterar</span>
-                                    <input type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])} />
+                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])} />
                                 </label>
                             </>
                         ) : (
                             <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors">
                                 <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest text-center leading-tight px-1">Produto sem foto<br />Adicione</span>
-                                <input type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])} />
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])} />
                             </label>
                         )
                     ) : (

@@ -13,8 +13,8 @@ import { CreateReportSchema, UpdateReportSchema, ReportQuerySchema } from '../va
  */
 export const getReportsByUser = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
-        const uid = req.firebaseUser!.uid;
-        const isAdmin = !!req.firebaseUser!.admin;
+        // const uid = req.firebaseUser!.uid;
+        // const isAdmin = !!req.firebaseUser!.admin;
 
         // Parse & coerce query params — ZodError → 400 via errorHandler
         const { page, limit, search, creator_name, dateFrom, dateTo, sortBy, sortOrder } = ReportQuerySchema.parse(req.query);

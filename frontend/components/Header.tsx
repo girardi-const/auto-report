@@ -118,6 +118,16 @@ export default function Header() {
                             </Link>
                         </li>
                         <li>
+                            <Link href="/historico" className="hover:text-primary transition-colors">
+                                Histórico
+                            </Link>
+                        </li>
+                        <li>
+                            <Link href="/catalogo" className="hover:text-primary transition-colors">
+                                Catálogo
+                            </Link>
+                        </li>
+                        <li>
                             <Link href="/editor" className="hover:text-primary transition-colors">
                                 Editor Livre
                             </Link>
@@ -144,16 +154,6 @@ export default function Header() {
                         <li>
                             <Link href="/marcas" className="hover:text-primary transition-colors">
                                 Marcas
-                            </Link>
-                        </li>
-                        <li>
-                            <Link href="/catalogo" className="hover:text-primary transition-colors">
-                                Catálogo
-                            </Link>
-                        </li>
-                        <li>
-                            <Link href="/historico" className="hover:text-primary transition-colors">
-                                Histórico
                             </Link>
                         </li>
                         <li>

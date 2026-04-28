@@ -35,7 +35,10 @@ export function ProductForm({ brands, onSubmit, loading }: Props) {
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData(prev => ({
+        ...prev,
+        [name]: name === "description" ? value.toUpperCase() : value
+    }));
     };
 
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,7 +48,6 @@ export function ProductForm({ brands, onSubmit, loading }: Props) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (saving) return;
-
         setSaving(true);
         try {
             await onSubmit({
